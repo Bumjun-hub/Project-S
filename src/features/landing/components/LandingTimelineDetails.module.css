@@ -1,0 +1,770 @@
+/* 단일 floating showcase — absolute 좌표는 .floatRoot 기준 */
+
+/* 글로벌 배경(GlobalBackgroundFx · GridMotion 의류 이미지)이 그대로 비치도록 단색/로컬 배경 이미지 없음 */
+.showcase {
+  position: relative;
+  width: 100%;
+  min-height: 950px;
+  overflow: hidden;
+  padding: 120px clamp(1rem, 4vw, 2rem) clamp(9.5rem, 15vw, 12rem);
+  box-sizing: border-box;
+  background: transparent;
+}
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    rgba(5, 7, 14, 0.38),
+    rgba(5, 7, 14, 0.22),
+    rgba(5, 7, 14, 0.38)
+  );
+}
+
+.floatRoot {
+  position: relative;
+  z-index: 2;
+  min-height: 920px;
+  width: 100%;
+  margin-inline: auto;
+}
+
+/* 허브 타이포 ↔ 플로팅 UI 연결선 (좌표는 viewBox 0~100 %) */
+.hubLinks {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.hubLinks line {
+  stroke: rgba(255, 255, 255, 0.2);
+  stroke-width: 0.52;
+  vector-effect: non-scaling-stroke;
+  stroke-linecap: round;
+}
+
+/* — 중앙 허브: PROBLEM 카피 (선은 여기서 만나도록 SVG 좌표와 맞춤) — */
+.problemHub {
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  transform: translate(-50%, -50%);
+  width: min(34rem, 92vw);
+  max-width: calc(100% - 2rem);
+  z-index: 5;
+  text-align: center;
+  pointer-events: none;
+}
+
+.problemHubInner {
+  width: 100%;
+}
+
+.hubEyebrow {
+  display: block;
+  margin: 0 0 0.42rem;
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  color: rgba(167, 186, 230, 0.72);
+}
+
+.hubProblemTitle {
+  margin: 0;
+  color: #f3f7ff;
+  font-size: clamp(1.38rem, 2.55vw, 2.08rem);
+  line-height: 1.2;
+  letter-spacing: -0.028em;
+  font-weight: 800;
+  word-break: keep-all;
+  text-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.55),
+    0 0 32px rgba(4, 6, 14, 0.5);
+}
+
+.hubProblemBody {
+  margin: 0.62rem auto 0;
+  max-width: 36ch;
+  color: rgba(191, 208, 240, 0.88);
+  font-size: 0.82rem;
+  line-height: 1.55;
+}
+
+/* — Ambient micro UI pieces (Superhuman-like density) — */
+.microGlass,
+.microPill,
+.brandTag {
+  position: absolute;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.depthStrong {
+  z-index: 6;
+  opacity: 0.96;
+  filter: none;
+}
+
+.depthMid {
+  z-index: 4;
+  opacity: 0.86;
+  filter: saturate(1.04);
+}
+
+.depthSoft {
+  z-index: 2;
+  opacity: 0.7;
+  filter: blur(0.1px) saturate(0.96);
+}
+
+.microGlass {
+  padding: 0.48rem 0.64rem;
+  border-radius: 12px;
+  border: 1px solid rgba(162, 180, 235, 0.22);
+  background: linear-gradient(145deg, rgba(19, 24, 40, 0.68), rgba(12, 16, 28, 0.58));
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow:
+    0 8px 24px rgba(7, 10, 24, 0.34),
+    0 0 32px rgba(108, 127, 255, 0.11);
+}
+
+.microPill,
+.brandTag {
+  padding: 0.26rem 0.52rem;
+  border-radius: 999px;
+  border: 1px solid rgba(164, 182, 232, 0.24);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.11), rgba(255, 255, 255, 0.04));
+  color: #dce7ff;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  box-shadow:
+    0 8px 22px rgba(5, 8, 22, 0.36),
+    0 0 28px rgba(100, 125, 240, 0.11);
+  white-space: nowrap;
+}
+
+.brandTag {
+  color: #bed0fb;
+  border-color: rgba(127, 154, 230, 0.22);
+  background: linear-gradient(140deg, rgba(88, 108, 200, 0.18), rgba(40, 52, 106, 0.12));
+}
+
+.microKicker {
+  margin: 0;
+  font-size: 0.56rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: #91a7dd;
+  text-transform: uppercase;
+}
+
+.microMetricValue {
+  margin: 0.15rem 0 0;
+  font-size: 1.08rem;
+  font-weight: 800;
+  color: #f0f5ff;
+  line-height: 1.1;
+}
+
+.microTooltipText {
+  margin: 0;
+  color: #c8d8fb;
+  font-size: 0.66rem;
+  line-height: 1.35;
+  white-space: nowrap;
+}
+
+.miniMetricsPanel {
+  width: min(10.5rem, 34vw);
+}
+
+.miniMetricRow {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 0.34rem;
+  color: #b9c8ed;
+  font-size: 0.62rem;
+}
+
+.miniTrack {
+  margin-top: 0.16rem;
+  height: 3px;
+  border-radius: 999px;
+  background: rgba(132, 152, 215, 0.18);
+  overflow: hidden;
+}
+
+.miniTrack > span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(112, 148, 255, 0.95), rgba(170, 120, 246, 0.95));
+}
+
+.aiMatchScore {
+  left: 40%;
+  top: 20%;
+}
+
+.aiTooltipA {
+  left: 56%;
+  top: 66%;
+}
+
+.aiTooltipB {
+  left: 79%;
+  top: 34%;
+}
+
+.miniMetricsPanel {
+  right: 22%;
+  top: 76%;
+}
+
+.statusBadgeA {
+  right: 4%;
+  top: 30%;
+  transform: rotate(-4deg);
+}
+
+.statusBadgeB {
+  right: 2%;
+  top: 64%;
+}
+
+.statusBadgeC {
+  left: 14%;
+  top: 21%;
+  transform: rotate(6deg);
+}
+
+.statusBadgeD {
+  left: 24%;
+  top: 27%;
+}
+
+.measureChipA {
+  right: 2%;
+  top: 44%;
+}
+
+.measureChipB {
+  right: 2%;
+  top: 50%;
+}
+
+.measureChipC {
+  right: 3%;
+  top: 83%;
+}
+
+.measureChipD {
+  left: 40%;
+  top: 86%;
+}
+
+.brandTagA {
+  left: 46%;
+  top: 11%;
+}
+
+.brandTagB {
+  left: 15%;
+  top: 33%;
+}
+
+.brandTagC {
+  right: 8%;
+  top: 12%;
+}
+
+.brandTagD {
+  right: -1.1rem; /* Superhuman 느낌의 edge clipping */
+  top: 73%;
+}
+
+/* 오른쪽 과밀 해소: 보조 조각 일부 제거 */
+.statusBadgeA,
+.measureChipA,
+.measureChipB,
+.brandTagD {
+  display: none;
+}
+
+/* 겹침 해소를 위해 추가로 비활성화 */
+.aiTooltipB,
+.statusBadgeB,
+.measureChipC,
+.measureChipD,
+.brandTagC {
+  display: none;
+}
+
+/* — 섹션 카드 공통 + scatter 위치 — */
+.scatterCard {
+  position: absolute;
+  z-index: 3;
+  padding: 0.95rem 1.05rem;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  background: linear-gradient(160deg, rgba(16, 20, 36, 0.84), rgba(10, 12, 24, 0.78));
+  box-shadow:
+    0 0 0 1px rgba(100, 120, 220, 0.08),
+    0 14px 38px rgba(4, 8, 26, 0.48),
+    0 0 48px rgba(88, 110, 220, 0.14);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transition: box-shadow 0.22s ease;
+  pointer-events: auto;
+}
+
+.scatterCard:hover {
+  box-shadow:
+    0 0 0 1px rgba(118, 138, 240, 0.14),
+    0 18px 44px rgba(6, 10, 30, 0.52),
+    0 0 58px rgba(110, 130, 255, 0.2);
+}
+
+.scatterCompare {
+  right: 18%;
+  top: 13%;
+  width: min(14rem, 36vw);
+  max-width: calc(100% - 4rem);
+}
+
+.scatterInput {
+  left: 15%;
+  top: 40%;
+  width: min(21rem, 44vw);
+  max-width: calc(100% - 4rem);
+}
+
+.scatterFlow {
+  left: 16%;
+  bottom: 14%;
+  width: min(16.75rem, 48vw);
+  max-width: calc(100% - 4rem);
+}
+
+.sectionEyebrow {
+  display: block;
+  margin: 0 0 0.42rem;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  color: #8fa4d8;
+}
+
+.sectionEyebrowMuted {
+  display: block;
+  margin: 0 0 0.42rem;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  color: #7c90c4;
+}
+
+.sectionLeadTitle {
+  margin: 0;
+  color: #f3f7ff;
+  font-size: clamp(1.05rem, 1.85vw, 1.45rem);
+  line-height: 1.24;
+  letter-spacing: -0.024em;
+  font-weight: 800;
+  word-break: keep-all;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+}
+
+.sectionBody {
+  margin: 0.45rem 0 0;
+  color: #b2c4e8;
+  font-size: 0.76rem;
+  line-height: 1.5;
+}
+
+.sectionSubtitle {
+  margin: 0 0 0.55rem;
+  color: #9eb2e6;
+  font-size: 0.74rem;
+  line-height: 1.45;
+}
+
+.compareBlock {
+  margin-top: 0.35rem;
+}
+
+.compareBrand {
+  margin: 0;
+  color: #f0f4ff;
+  font-weight: 700;
+  font-size: 0.86rem;
+}
+
+.compareMeasures {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: 0.36rem;
+  color: #b3c6ed;
+  font-size: 0.74rem;
+}
+
+.compareHr {
+  margin: 0.45rem 0;
+  border: none;
+  border-top: 1px solid rgba(130, 150, 210, 0.2);
+}
+
+.inputRows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.38rem;
+}
+
+.inputRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.5rem;
+  padding: 0.34rem 0.44rem;
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(164, 182, 232, 0.12);
+}
+
+.inputRowLabel {
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #8fa4d8;
+}
+
+.inputRowValue {
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: #f3f7ff;
+}
+
+.flowNav {
+  position: relative;
+  margin-top: 0.35rem;
+  padding-left: clamp(0.25rem, 1.2vw, 0.5rem);
+}
+
+/* — Result: 수직 중앙 기준 오른쪽 허브 — */
+.resultWrap {
+  display: contents;
+}
+
+.resultPanelAnchor {
+  position: absolute;
+  right: 16%;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 4;
+}
+
+.resultPanel {
+  position: relative;
+  right: auto;
+  top: auto;
+  z-index: 4;
+  width: min(560px, min(48vw, 100%));
+  max-width: 560px;
+  min-width: min(300px, 94vw);
+  padding: 1.2rem 1.22rem;
+  border-radius: 22px;
+  border: 1px solid rgba(130, 150, 240, 0.3);
+  background: linear-gradient(158deg, rgba(11, 15, 32, 0.82), rgba(6, 9, 20, 0.78));
+  box-shadow:
+    0 0 0 1px rgba(90, 112, 220, 0.12),
+    0 24px 54px rgba(22, 30, 70, 0.4),
+    0 0 76px rgba(88, 108, 250, 0.24);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition: box-shadow 0.24s ease;
+}
+
+.resultPanel:hover {
+  box-shadow:
+    0 0 0 1px rgba(120, 140, 255, 0.2),
+    0 28px 62px rgba(26, 34, 86, 0.45),
+    0 0 92px rgba(108, 128, 255, 0.32);
+}
+
+.resultHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.6rem;
+  margin-bottom: 0.12rem;
+}
+
+.resultTitle {
+  margin: 0;
+  font-size: clamp(1.1rem, 1.95vw, 1.42rem);
+  font-weight: 800;
+  color: #f4f7ff;
+  letter-spacing: -0.02em;
+}
+
+.sizeAccent {
+  color: #dadfff;
+}
+
+.resultSub {
+  margin: 0.32rem 0 0;
+  color: #b6c5ec;
+  font-size: 0.87rem;
+}
+
+.badge {
+  flex-shrink: 0;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 0.26rem 0.54rem;
+  border-radius: 999px;
+  color: #eaeeff;
+  background: rgba(82, 102, 210, 0.38);
+  border: 1px solid rgba(175, 192, 255, 0.22);
+}
+
+.compareTitle {
+  margin: 0.78rem 0 0;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #d2ddf6;
+}
+
+.barBlock {
+  display: grid;
+  gap: 0.28rem;
+  margin-top: 0.46rem;
+}
+
+.barMeta {
+  display: flex;
+  justify-content: space-between;
+  color: #aebee8;
+  font-size: 0.8rem;
+}
+
+.barTrack {
+  height: 5px;
+  border-radius: 999px;
+  background: rgba(125, 145, 205, 0.15);
+  overflow: hidden;
+}
+
+.barFill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(78, 128, 255, 1), rgba(155, 100, 240, 1));
+}
+
+/* — Timeline (카드 내부 .flowNav) — */
+.timelineRail {
+  position: absolute;
+  left: 4px;
+  top: 6px;
+  bottom: 6px;
+  width: 1px;
+  background: linear-gradient(180deg, rgba(130, 152, 220, 0.55), rgba(130, 152, 220, 0.08));
+  pointer-events: none;
+}
+
+.timelineList {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 1rem;
+  display: grid;
+  gap: 0.4rem;
+}
+
+.timelineItem {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.timelineDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  margin-left: -11px;
+  background: linear-gradient(135deg, #7a9dff, #a57ef2);
+  box-shadow: 0 0 12px rgba(130, 150, 255, 0.7);
+}
+
+.timelineText {
+  margin: 0;
+  font-size: 0.72rem;
+  color: #9eb2e6;
+}
+
+.idx {
+  font-family: ui-monospace, monospace;
+  color: #7c92d6;
+  margin-right: 0.34rem;
+  font-size: 0.66rem;
+}
+
+/* — CTA — */
+.ctaBlock {
+  position: absolute;
+  left: 50%;
+  bottom: 5.5%;
+  transform: translateX(-50%);
+  z-index: 6;
+  width: min(22rem, 92vw);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  text-align: center;
+  padding-inline: clamp(0.75rem, 3vw, 1.25rem);
+}
+
+.ctaBlock :global(button) {
+  width: 100%;
+  max-width: 300px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  border-radius: 14px;
+  padding: 0.76rem 1.05rem;
+  font-size: 0.92rem;
+  cursor: pointer;
+  border: 1px solid rgba(178, 195, 250, 0.45);
+  background: linear-gradient(135deg, rgba(72, 110, 235, 0.98), rgba(105, 90, 230, 0.96));
+  color: #f7faff;
+  box-shadow:
+    0 10px 32px rgba(48, 68, 200, 0.44),
+    0 0 36px rgba(110, 130, 255, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.ctaBlock :global(button):hover {
+  transform: translateY(-3px);
+  box-shadow:
+    0 15px 40px rgba(44, 64, 210, 0.5),
+    0 0 48px rgba(125, 145, 255, 0.32),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22);
+}
+
+.footerNote {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.65rem;
+  align-items: center;
+  padding: clamp(1.1rem, 3vw, 1.75rem) clamp(1rem, 4vw, 2rem)
+    clamp(1.75rem, 4vw, 2.75rem);
+  max-width: min(1180px, 100%);
+  margin-inline: auto;
+  color: #95a7c9;
+  font-size: 0.82rem;
+  line-height: 1.55;
+}
+
+.footerNote a {
+  color: #c2d2f6;
+}
+
+/* — 모바일: absolute 해제 · 세로 정렬 · 결과 우선 — */
+@media (max-width: 768px) {
+  .hubLinks {
+    display: none;
+  }
+
+  .showcase {
+    min-height: 0;
+    padding: clamp(3rem, 10vw, 4.75rem) 1rem clamp(3.25rem, 12vw, 5rem);
+  }
+
+  .floatRoot {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.2rem;
+    min-height: 0;
+  }
+
+  .problemHub {
+    position: static !important;
+    transform: none;
+    max-width: min(26rem, 100%);
+    order: 5;
+    pointer-events: auto;
+  }
+
+  .scatterCard,
+  .problemHub,
+  .microGlass,
+  .microPill,
+  .brandTag,
+  .resultPanelAnchor,
+  .resultPanel,
+  .ctaBlock {
+    position: static !important;
+    left: auto;
+    right: auto;
+    top: auto;
+    bottom: auto;
+    transform: none;
+    width: 100%;
+    max-width: min(26rem, 100%);
+    min-width: 0;
+  }
+
+  .microGlass,
+  .microPill,
+  .brandTag {
+    display: none;
+  }
+
+  .scatterCompare {
+    order: 20;
+  }
+
+  .scatterInput {
+    order: 30;
+  }
+
+  .resultWrap {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    order: 40;
+  }
+
+  .resultPanelAnchor {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    max-width: min(26rem, 100%);
+  }
+
+  .scatterFlow {
+    order: 50;
+    align-self: flex-start;
+  }
+
+  .ctaBlock {
+    order: 999;
+    margin-top: 0.25rem;
+  }
+}
