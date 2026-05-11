@@ -49,6 +49,21 @@ export const MOCK_PRODUCTS: MockProduct[] = [
       { label: "34", min: 86, max: 92 },
     ],
   },
+  {
+    id: "p-coat-04",
+    name: "발마칸 싱글 코트",
+    brand: "노던라인",
+    category: "아우터",
+    priceKrw: 298000,
+    description: "클래식 실루엣의 싱글 코트. 어깨·총장 라인이 정돈된 오버코트 핏입니다.",
+    chartAxis: "chest",
+    sizeChart: [
+      { label: "90", min: 92, max: 98 },
+      { label: "95", min: 98, max: 104 },
+      { label: "100", min: 104, max: 110 },
+      { label: "105", min: 110, max: 118 },
+    ],
+  },
 ];
 
 export function getMockProduct(id: string): MockProduct | undefined {

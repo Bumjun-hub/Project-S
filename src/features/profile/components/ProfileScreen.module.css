@@ -1,0 +1,199 @@
+/* Profile onboarding: two-column portfolio layout */
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 300px);
+  gap: 1.25rem;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.formColumn {
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.summaryColumn {
+  position: sticky;
+  top: 0.75rem;
+}
+
+@media (max-width: 900px) {
+  .summaryColumn {
+    position: static;
+  }
+}
+
+.form {
+  display: grid;
+  gap: 1rem;
+}
+
+.stepBlock {
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 16px;
+  padding: 0.85rem 0.95rem;
+  background: linear-gradient(150deg, rgba(18, 26, 50, 0.26), rgba(10, 14, 30, 0.15));
+  box-shadow: 0 4px 14px rgba(18, 24, 48, 0.1);
+}
+
+.stepIndex {
+  margin: 0 0 0.5rem;
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  color: #8ea7e3;
+  font-weight: 700;
+}
+
+.field {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.fieldLabel {
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.field :global(.app-input) {
+  font-size: 1.06rem;
+  padding: 0.75rem 0.9rem;
+}
+
+.genderPills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.genderPill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.48rem 0.78rem;
+  border-radius: 999px;
+  border: 0.5px solid rgba(176, 201, 255, 0.22);
+  background: linear-gradient(135deg, rgba(56, 72, 118, 0.32), rgba(38, 32, 82, 0.18));
+  color: #dce8ff;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.88rem;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.genderPill:hover {
+  border-color: rgba(188, 209, 255, 0.38);
+}
+
+.genderPillActive {
+  border-color: rgba(188, 209, 255, 0.45);
+  background: linear-gradient(135deg, rgba(88, 118, 232, 0.38), rgba(124, 92, 228, 0.28));
+  box-shadow: 0 2px 10px rgba(70, 95, 180, 0.14);
+}
+
+.ctaWrap {
+  margin-top: 0.25rem;
+}
+
+.ctaWrap :global(button) {
+  width: 100%;
+}
+
+.summaryCard {
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  padding: 1rem 1.05rem;
+  background: linear-gradient(158deg, rgba(22, 30, 55, 0.32), rgba(12, 16, 34, 0.18));
+  box-shadow: 0 4px 16px rgba(18, 24, 52, 0.12);
+}
+
+.summaryTitle {
+  margin: 0 0 0.65rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  color: #8ea7e3;
+  font-weight: 700;
+}
+
+.summaryProduct {
+  margin: 0 0 0.85rem;
+  font-size: 1.05rem;
+  font-weight: 800;
+  line-height: 1.25;
+  color: #eef3ff;
+}
+
+.summaryList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0;
+}
+
+.summaryItem {
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.55rem 0;
+  border-bottom: 0.5px solid rgba(173, 196, 255, 0.1);
+}
+
+.summaryItem:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.summaryKey {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #8fa6d4;
+  font-weight: 600;
+}
+
+.summaryValue {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: #e4ecff;
+  word-break: keep-all;
+}
+
+.summaryEmpty {
+  font-size: 0.92rem;
+  font-weight: 500;
+  color: #7a8fb8;
+  word-break: keep-all;
+}
+
+.tagSummaryWrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.tagSummaryPill {
+  display: inline-flex;
+  padding: 0.22rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #dbe6ff;
+  border: 0.5px solid rgba(176, 201, 255, 0.22);
+  background: rgba(72, 96, 168, 0.22);
+}
+
+@media (max-width: 768px) {
+  .genderPill {
+    flex: 1 1 calc(50% - 0.25rem);
+    text-align: center;
+    justify-content: center;
+  }
+}

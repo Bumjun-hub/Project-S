@@ -1,0 +1,92 @@
+.nav {
+  margin-top: 1.5rem;
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 0.45rem;
+  max-width: 100%;
+}
+
+.item {
+  display: flex;
+}
+
+.link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 0.92rem;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  text-decoration: none;
+  color: #e8f0ff;
+  border: 0.5px solid rgba(176, 201, 255, 0.28);
+  background: linear-gradient(145deg, rgba(52, 68, 118, 0.42), rgba(30, 26, 72, 0.28));
+  box-shadow: 0 2px 10px rgba(12, 18, 42, 0.12);
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease,
+    box-shadow 0.15s ease,
+    color 0.15s ease;
+}
+
+.link:hover {
+  border-color: rgba(200, 220, 255, 0.48);
+  background: linear-gradient(145deg, rgba(72, 96, 168, 0.48), rgba(52, 40, 110, 0.32));
+  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(70, 95, 180, 0.18);
+}
+
+.link:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 2px rgba(106, 140, 255, 0.35),
+    0 2px 10px rgba(12, 18, 42, 0.12);
+}
+
+.linkPrimary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 0.92rem;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  text-decoration: none;
+  color: #f7fbff;
+  border: 0.5px solid rgba(189, 210, 255, 0.42);
+  background: linear-gradient(135deg, rgba(78, 116, 245, 0.55), rgba(118, 94, 238, 0.42));
+  box-shadow: 0 4px 14px rgba(46, 67, 160, 0.22);
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease,
+    box-shadow 0.15s ease,
+    color 0.15s ease;
+}
+
+.linkPrimary:hover {
+  border-color: rgba(210, 225, 255, 0.55);
+  background: linear-gradient(135deg, rgba(88, 126, 255, 0.72), rgba(128, 104, 248, 0.55));
+  box-shadow: 0 6px 18px rgba(46, 67, 160, 0.32);
+  color: #ffffff;
+}
+
+.linkPrimary:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 2px rgba(106, 140, 255, 0.35),
+    0 4px 14px rgba(46, 67, 160, 0.22);
+}

@@ -20,7 +20,9 @@ export function FlowStepCaption({ step, label, align = "center" }: FlowStepCapti
         aria-hidden
         style={{
           margin: centered ? "0 auto" : 0,
-          maxWidth: 340,
+          width: "100%",
+          maxWidth: "min(340px, 100%)",
+          boxSizing: "border-box",
           display: "grid",
           gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
           gap: 6,

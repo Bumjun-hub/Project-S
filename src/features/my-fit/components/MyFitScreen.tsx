@@ -1,15 +1,16 @@
 // 이 파일은 사용자의 기준 핏 입력 화면을 정의합니다.
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { FlowFooterNav } from "@/components/common/FlowFooterNav";
 import { GlassCTA } from "@/components/common/GlassCTA";
 import { Input } from "@/components/common/Input";
 import { Select } from "@/components/common/Select";
 import { StepPageShell } from "@/components/layout/StepPageShell";
 import { useFitReferenceStore } from "@/features/my-fit/store";
 import type { FitCategory, FitFeeling, FitMeasurement } from "@/features/my-fit/types";
+import styles from "./MyFitScreen.module.css";
 
 const CATEGORY_OPTIONS: Array<{ value: FitCategory; label: string }> = [
   { value: "top", label: "상의" },
@@ -28,6 +29,12 @@ function toMap(measurements: FitMeasurement[]) {
     acc[m.area] = m;
     return acc;
   }, {});
+}
+
+function feelingLabel(f: FitFeeling | ""): string {
+  if (f === "small") return "작았음";
+  if (f === "large") return "컸음";
+  return "";
 }
 
 export default function MyFitScreen() {
@@ -54,6 +61,25 @@ export default function MyFitScreen() {
     }
     return base;
   });
+
+  const areas = CATEGORY_MEASUREMENTS[category];
+
+  const { completedCount, feelingLines } = useMemo(() => {
+    let n = 0;
+    const lines: string[] = [];
+    for (const area of areas) {
+      const raw = (sizeByArea[area] ?? "").trim();
+      const sizeCm = raw === "" ? null : Number(raw);
+      const feeling = feelingByArea[area] ?? "";
+      if (sizeCm != null && !Number.isNaN(sizeCm) && feeling !== "") {
+        n += 1;
+        lines.push(`${area}: ${feelingLabel(feeling)}`);
+      }
+    }
+    return { completedCount: n, feelingLines: lines };
+  }, [areas, sizeByArea, feelingByArea]);
+
+  const categoryLabel = CATEGORY_OPTIONS.find((o) => o.value === category)?.label ?? category;
 
   function syncCategory(next: FitCategory) {
     setCategory(next);
@@ -115,14 +141,53 @@ export default function MyFitScreen() {
       step={3}
       label="기준 옷 실측"
       title="기준 옷 실측 입력"
-      description="Measurement Builder에서 부위별 수치를 입력하고 착용감을 함께 저장하세요."
-      maxWidth={680}
+      description="부위별 실측과 착용감을 함께 저장하면 추천이 더 정확해집니다."
+      maxWidth={720}
       panelClassName="myfit-panel"
     >
-      <form className="myfit-builder-form" onSubmit={submit}>
-        <div className="myfit-builder-top">
-          <label style={{ display: "grid", gap: 6 }}>
-            <span className="myfit-field-label">카테고리</span>
+      <form className={styles.form} onSubmit={submit}>
+        <section className={styles.summaryCard} aria-label="내 기준 옷 요약">
+          <p className={styles.summaryKicker}>REFERENCE GARMENT</p>
+          <h2 className={styles.summaryTitle}>내 기준 옷 요약</h2>
+          <div className={styles.summaryGrid}>
+            <div className={styles.summaryCell}>
+              <span className={styles.summaryLabel}>카테고리</span>
+              <span className={styles.summaryValue}>{categoryLabel}</span>
+            </div>
+            <div className={styles.summaryCell}>
+              <span className={styles.summaryLabel}>실측 입력</span>
+              <span className={styles.summaryValue}>
+                {completedCount} / {areas.length}개
+              </span>
+            </div>
+            <div className={styles.summaryCellWide}>
+              <span className={styles.summaryLabel}>기준 옷 이름</span>
+              {garmentLabel.trim() !== "" ? (
+                <span className={styles.summaryValue}>{garmentLabel.trim()}</span>
+              ) : (
+                <span className={styles.summaryMuted}>이름을 입력하면 여기에 표시됩니다.</span>
+              )}
+            </div>
+            <div className={styles.summaryCellWide}>
+              <span className={styles.summaryLabel}>착용감 요약</span>
+              {feelingLines.length > 0 ? (
+                <ul className={styles.summaryList}>
+                  {feelingLines.map((line, i) => (
+                    <li key={`${i}-${line}`}>{line}</li>
+                  ))}
+                </ul>
+              ) : (
+                <span className={styles.summaryMuted}>
+                  cm와 착용감이 모두 채워진 행만 요약에 나타납니다.
+                </span>
+              )}
+            </div>
+          </div>
+        </section>
+
+        <div className={styles.builderTop}>
+          <label className={styles.fieldStack}>
+            <span className={styles.fieldLabel}>카테고리</span>
             <Select value={category} onChange={(e) => syncCategory(e.target.value as FitCategory)}>
               {CATEGORY_OPTIONS.map((opt) => (
                 <option value={opt.value} key={opt.value}>
@@ -131,8 +196,8 @@ export default function MyFitScreen() {
               ))}
             </Select>
           </label>
-          <label style={{ display: "grid", gap: 6 }}>
-            <span className="myfit-field-label">기준 옷 이름</span>
+          <label className={styles.fieldStack}>
+            <span className={styles.fieldLabel}>기준 옷 이름</span>
             <Input
               value={garmentLabel}
               onChange={(e) => setGarmentLabel(e.target.value)}
@@ -142,50 +207,60 @@ export default function MyFitScreen() {
           </label>
         </div>
 
-        <section className="myfit-builder-table">
-          <div className="myfit-builder-head">
+        <section className={styles.table} aria-label="부위별 실측">
+          <div className={styles.tableHead}>
             <span>부위</span>
             <span>실측 (cm)</span>
             <span>착용감</span>
           </div>
-          {CATEGORY_MEASUREMENTS[category].map((area) => (
-            <div key={area} className="myfit-builder-row">
-              <span className="myfit-row-area">{area}</span>
-              <Input
-                inputMode="decimal"
-                value={sizeByArea[area] ?? ""}
-                onChange={(e) =>
-                  setSizeByArea((prev) => ({
-                    ...prev,
-                    [area]: e.target.value,
-                  }))
-                }
-                placeholder="cm"
-              />
-              <Select
-                value={feelingByArea[area] ?? ""}
-                onChange={(e) =>
-                  setFeelingByArea((prev) => ({
-                    ...prev,
-                    [area]: e.target.value as FitFeeling | "",
-                  }))
-                }
-              >
-                <option value="">선택</option>
-                <option value="small">작았음</option>
-                <option value="large">컸음</option>
-              </Select>
-            </div>
-          ))}
+          <div className={styles.tableBody}>
+            {areas.map((area) => (
+              <div key={area} className={styles.tableRow}>
+                <span className={styles.rowArea}>{area}</span>
+                <Input
+                  inputMode="decimal"
+                  value={sizeByArea[area] ?? ""}
+                  onChange={(e) =>
+                    setSizeByArea((prev) => ({
+                      ...prev,
+                      [area]: e.target.value,
+                    }))
+                  }
+                  placeholder="cm"
+                />
+                <Select
+                  value={feelingByArea[area] ?? ""}
+                  onChange={(e) =>
+                    setFeelingByArea((prev) => ({
+                      ...prev,
+                      [area]: e.target.value as FitFeeling | "",
+                    }))
+                  }
+                >
+                  <option value="">선택</option>
+                  <option value="small">작았음</option>
+                  <option value="large">컸음</option>
+                </Select>
+              </div>
+            ))}
+          </div>
         </section>
 
-        <div className="myfit-cta-wrap">
+        <p className={styles.footerNote}>
+          이 기준 옷은 상품 실측과 비교되어 추천에 사용됩니다.
+        </p>
+
+        <div className={styles.ctaWrap}>
           <GlassCTA type="submit">저장 후 상품 목록으로</GlassCTA>
         </div>
       </form>
-      <p style={{ marginTop: "1.5rem" }}>
-        <Link href="/profile">← 프로필</Link>
-      </p>
+
+      <FlowFooterNav
+        items={[
+          { href: "/profile", label: "프로필" },
+          { href: "/", label: "홈" },
+        ]}
+      />
     </StepPageShell>
   );
 }

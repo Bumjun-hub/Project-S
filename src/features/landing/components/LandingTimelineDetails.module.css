@@ -692,7 +692,10 @@
 
   .showcase {
     min-height: 0;
-    padding: clamp(3rem, 10vw, 4.75rem) 1rem clamp(3.25rem, 12vw, 5rem);
+    padding-top: max(clamp(3rem, 10vw, 4.75rem), env(safe-area-inset-top, 0px));
+    padding-right: max(1rem, env(safe-area-inset-right, 0px));
+    padding-bottom: max(clamp(3.25rem, 12vw, 5rem), env(safe-area-inset-bottom, 0px));
+    padding-left: max(1rem, env(safe-area-inset-left, 0px));
   }
 
   .floatRoot {
@@ -701,6 +704,9 @@
     align-items: center;
     gap: 1.2rem;
     min-height: 0;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
   }
 
   .problemHub {
@@ -766,5 +772,17 @@
   .ctaBlock {
     order: 999;
     margin-top: 0.25rem;
+    padding-bottom: max(0.25rem, env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* 초소형 폭: 카드 폭을 뷰포트에 맞춤 (패딩 제외) */
+@media (max-width: 380px) {
+  .scatterCard,
+  .problemHub,
+  .resultPanelAnchor,
+  .resultPanel,
+  .ctaBlock {
+    max-width: min(26rem, calc(100vw - 1.25rem));
   }
 }

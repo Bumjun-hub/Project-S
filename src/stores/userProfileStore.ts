@@ -11,6 +11,7 @@ const defaultProfile: UserProfileState = {
   heightCm: null,
   weightKg: null,
   gender: "",
+  bodyShapeTags: [],
 };
 
 type UserProfileStore = {
@@ -29,6 +30,18 @@ export const useUserProfileStore = create<UserProfileStore>()(
       name: "project-s-user-profile",
       storage: createJSONStorage(() => localStorage),
       partialize: (s) => ({ profile: s.profile }),
+      merge: (persisted, current) => {
+        const p = persisted as Partial<UserProfileStore> | undefined;
+        if (!p?.profile) return current as UserProfileStore;
+        return {
+          ...(current as UserProfileStore),
+          profile: {
+            ...(current as UserProfileStore).profile,
+            ...p.profile,
+            bodyShapeTags: p.profile.bodyShapeTags ?? [],
+          },
+        };
+      },
     },
   ),
 );

@@ -70,13 +70,26 @@ function estimateProductMeasurements(
   };
 }
 
+/** 마지막 음절 받침 유무에 따라 조사 은/는 선택 */
+function topicParticle(topic: string): "은" | "는" {
+  if (topic.length === 0) return "는";
+  const last = topic[topic.length - 1]!;
+  const code = last.charCodeAt(0);
+  if (code >= 0xac00 && code <= 0xd7a3) {
+    const jong = (code - 0xac00) % 28;
+    return jong === 0 ? "는" : "은";
+  }
+  return "는";
+}
+
 function classifyFit(measurement: FitMeasurement, estimatedCm: number): string {
   if (measurement.sizeCm == null || measurement.feeling == null) return "";
   const targetOffset = measurement.feeling === "small" ? 1.5 : -1.5;
   const score = estimatedCm - measurement.sizeCm - targetOffset;
-  if (score >= 1.8) return `${measurement.area}는 기존보다 크게 느껴질 가능성이 높습니다.`;
-  if (score <= -1.8) return `${measurement.area}는 기존보다 작게 느껴질 가능성이 높습니다.`;
-  return `${measurement.area}는 기존과 비슷할 가능성이 높습니다.`;
+  const p = topicParticle(measurement.area);
+  if (score >= 1.8) return `${measurement.area}${p} 기존보다 크게 느껴질 가능성이 높습니다.`;
+  if (score <= -1.8) return `${measurement.area}${p} 기존보다 작게 느껴질 가능성이 높습니다.`;
+  return `${measurement.area}${p} 기존과 비슷할 가능성이 높습니다.`;
 }
 
 export function buildMockRecommendation(input: {
