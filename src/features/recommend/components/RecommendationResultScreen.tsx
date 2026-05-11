@@ -67,11 +67,11 @@ export default function RecommendationResultScreen() {
   const reasonItems = useMemo(() => {
     if (!lastResult) return [];
     const items = [
-      `${lastResult.brand} 사이즈 차트와 입력한 실측·프로필을 결합해 권장 라벨을 산출했습니다.`,
-      "기준 옷에서 기록한 착용감(작음/큼)을 바탕으로 핏 방향을 조정했습니다.",
+      "내 기준 옷 실측과 상품 사이즈표를 부위별로 비교해, 가장 비슷한 사이즈를 찾았습니다.",
+      "입력한 착용감(작았음/컸음)을 반영해 한 사이즈 위/아래로 보정했습니다.",
     ];
     if (bodyShapeTags.length > 0) {
-      items.push(`선택한 체형 특징을 반영했습니다: ${bodyShapeTags.join(" · ")}`);
+      items.push(`선택한 체형 특징도 참고했습니다: ${bodyShapeTags.join(" · ")}`);
     }
     return items;
   }, [lastResult, bodyShapeTags]);
@@ -157,7 +157,7 @@ export default function RecommendationResultScreen() {
           </h3>
           <div className={styles.reportCard}>
             <p className={styles.reportLead}>
-              권장 <strong>{lastResult.recommendedSize}</strong> — {fitLabel} 쪽으로 수렴하는 조합입니다.
+              추천 사이즈는 <strong>{lastResult.recommendedSize}</strong> 입니다. (예상 핏: {fitLabel})
             </p>
             <ul className={styles.reportList}>
               {reasonItems.map((item) => (
