@@ -77,7 +77,7 @@ export function AceternityLandingDetails() {
       >
         <GlassCard
           title="실측 + 착용감 저장"
-          description="상의/하의 카테고리별로 세부 치수와 작았음/컸음을 함께 저장합니다."
+          description="상의/하의 카테고리별로 세부 치수와 작았음/딱맞음/컸음을 함께 저장합니다."
           accent="linear-gradient(90deg,#7596bf,#7f78ad)"
         />
         <GlassCard

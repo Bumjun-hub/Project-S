@@ -84,7 +84,7 @@ function topicParticle(topic: string): "은" | "는" {
 
 function classifyFit(measurement: FitMeasurement, estimatedCm: number): string {
   if (measurement.sizeCm == null || measurement.feeling == null) return "";
-  const targetOffset = measurement.feeling === "small" ? 1.5 : -1.5;
+  const targetOffset = measurement.feeling === "small" ? 1.5 : measurement.feeling === "large" ? -1.5 : 0;
   const score = estimatedCm - measurement.sizeCm - targetOffset;
   const p = topicParticle(measurement.area);
   if (score >= 1.8) return `${measurement.area}${p} 기존보다 크게 느껴질 가능성이 높습니다.`;

@@ -33,6 +33,7 @@ function toMap(measurements: FitMeasurement[]) {
 
 function feelingLabel(f: FitFeeling | ""): string {
   if (f === "small") return "작았음";
+  if (f === "exact") return "딱맞음";
   if (f === "large") return "컸음";
   return "";
 }
@@ -119,7 +120,7 @@ export default function MyFitScreen() {
 
     const invalid = measurements.find((m) => m.sizeCm == null || Number.isNaN(m.sizeCm) || m.feeling == null);
     if (invalid) {
-      alert("입력한 실측마다 cm 값과 컸는지/작았는지 체크를 함께 완료해 주세요.");
+      alert("입력한 실측마다 cm 값과 착용감(작았음/딱맞음/컸음) 선택을 함께 완료해 주세요.");
       return;
     }
 
@@ -239,6 +240,7 @@ export default function MyFitScreen() {
                 >
                   <option value="">선택</option>
                   <option value="small">작았음</option>
+                  <option value="exact">딱맞음</option>
                   <option value="large">컸음</option>
                 </Select>
               </div>

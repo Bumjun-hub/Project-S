@@ -68,7 +68,7 @@ export default function RecommendationResultScreen() {
     if (!lastResult) return [];
     const items = [
       "내 기준 옷 실측과 상품 사이즈표를 부위별로 비교해, 가장 비슷한 사이즈를 찾았습니다.",
-      "입력한 착용감(작았음/컸음)을 반영해 한 사이즈 위/아래로 보정했습니다.",
+      "입력한 착용감(작았음/딱맞음/컸음)을 반영해 한 사이즈 위/아래 또는 유지로 보정했습니다.",
     ];
     if (bodyShapeTags.length > 0) {
       items.push(`선택한 체형 특징도 참고했습니다: ${bodyShapeTags.join(" · ")}`);
@@ -157,7 +157,7 @@ export default function RecommendationResultScreen() {
           </h3>
           <div className={styles.reportCard}>
             <p className={styles.reportLead}>
-              추천 사이즈는 <strong>{lastResult.recommendedSize}</strong> 입니다. (예상 핏: {fitLabel})
+              AI 모델 기준 추천 사이즈는 <strong>{lastResult.recommendedSize}</strong>이며, {fitLabel}으로 맞을 가능성이 높습니다.
             </p>
             <ul className={styles.reportList}>
               {reasonItems.map((item) => (
