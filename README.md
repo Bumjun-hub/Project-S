@@ -397,7 +397,7 @@ npm run dev
 
 ## GitHub
 ```bash
-GitHub Repository Link
+https://github.com/Bumjun-hub/Project-S/
 ```
 
 ## Deploy
