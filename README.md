@@ -402,5 +402,5 @@ https://github.com/Bumjun-hub/Project-S/
 
 ## Deploy
 ```bash
-Deploy Link
+https://project-s-rust.vercel.app/
 ```
