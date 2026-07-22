@@ -168,6 +168,9 @@
   width: 100%;
 }
 
+/* Light fit-builder cards and controls */
+.summaryCard, .builderTop, .table { border-color: var(--border); background: #fff; box-shadow: 0 3px 12px rgba(15,23,42,.035); }.summaryKicker, .summaryLabel, .footerNote { color: var(--primary); }.summaryTitle, .summaryValue, .fieldLabel { color: var(--fg); }.summaryMuted { color: var(--muted); }.summaryCell { border-color: var(--border); background: var(--surface-subtle); }.tableHead { border-color: var(--border); background: var(--surface-subtle); color: var(--muted); }.tableRow { border-color: var(--border); }.rowArea { color: var(--fg); }.ctaWrap :global(button) { min-height: 52px; }.ctaWrap :global(button:hover) { background: var(--primary-hover) !important; transform: translateY(-1px); }
+
 .footerNote {
   margin: 0;
   font-size: 0.82rem;

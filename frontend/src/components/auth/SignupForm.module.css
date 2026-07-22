@@ -9,13 +9,13 @@
 }
 
 .label {
-  color: #dce6ff;
+  color: var(--fg);
   font-size: 0.9rem;
 }
 
 .error {
   margin: -0.1rem 0 0;
-  color: #ffb8c2;
+  color: #dc2626;
   font-size: 0.82rem;
 }
 
@@ -27,23 +27,26 @@
 }
 
 .success {
-  background: rgba(94, 188, 142, 0.16);
-  color: #c8ffd9;
+  background: #ecfdf5;
+  color: #047857;
 }
 
 .failure {
-  background: rgba(220, 91, 113, 0.16);
-  color: #ffc7cf;
+  background: #fef2f2;
+  color: #b91c1c;
 }
 
 .submit {
   border: 0;
   border-radius: 12px;
-  background: linear-gradient(135deg, rgba(95, 128, 255, 0.8), rgba(146, 101, 238, 0.78));
+  background: var(--primary);
   color: #fff;
   font-weight: 700;
-  box-shadow: 0 10px 24px rgba(72, 99, 211, 0.28);
+  box-shadow: 0 8px 16px rgba(37, 99, 235, 0.18);
+  transition: transform .2s ease, background .2s ease;
 }
+
+.submit:hover:not(:disabled) { background: var(--primary-hover); transform: translateY(-1px); }
 
 .submit:disabled {
   opacity: 0.6;

@@ -1,0 +1,4 @@
+.footer { border-top: 1px solid var(--border); margin-top: 64px; background: rgba(255,255,255,.7); }
+.inner { max-width: 1180px; margin: 0 auto; min-height: 88px; padding: 20px 24px; display: flex; align-items: center; gap: 20px; color: var(--muted); font-size: .86rem; }
+.inner strong { color: var(--fg); font-size: .95rem; }.links { display: flex; gap: 16px; }.links a { text-decoration: none; }.links a:hover { color: var(--primary); } .inner small { margin-left: auto; }
+@media (max-width: 560px) { .inner { flex-wrap: wrap; } .inner small { width: 100%; margin-left: 0; } }

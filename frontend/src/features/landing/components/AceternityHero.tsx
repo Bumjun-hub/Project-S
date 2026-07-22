@@ -1,155 +1,50 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Ruler, Shirt, Tag, type LucideIcon } from "lucide-react";
-import { FlowStepCaption } from "@/components/common/FlowStepCaption";
-import styles from "@/features/landing/components/AceternityHero.module.css";
+import { ArrowRight, Check, Ruler, Shirt, Sparkles } from "lucide-react";
+import { useRouter } from "next/navigation";
+import type { ReactNode } from "react";
+import { useFlowBootstrapStore } from "@/stores/flowBootstrapStore";
+import styles from "./AceternityHero.module.css";
 
-const headlineSegments = [
-  { text: "내 옷 실측", tone: "keyA" as const }, // blue
-  { text: "을 기준으로", tone: "base" as const },
-  { br: true as const },
-  { text: "사이즈 실패", tone: "keyB" as const }, // white
-  { text: "를 줄이는", tone: "base" as const },
-  { br: true as const },
-  { text: "추천 플로우", tone: "keyC" as const }, // violet
-] as const;
+const steps = [
+  { icon: Ruler, title: "체형 입력", text: "나의 실측 정보를 입력합니다." },
+  { icon: Shirt, title: "상품 선택", text: "마음에 드는 옷을 고릅니다." },
+  { icon: Sparkles, title: "AI 추천", text: "가장 알맞은 사이즈를 확인합니다." },
+];
 
-const headlineContainer = {
-  hidden: {},
-  show: { transition: { staggerChildren: 0.18, delayChildren: 0.18 } },
-};
+type AceternityHeroProps = { afterHero?: ReactNode };
 
-const headlineWord = {
-  hidden: { opacity: 0, y: 10, filter: "blur(6px)" },
-  show: { opacity: 1, y: 0, filter: "blur(0px)", transition: { duration: 0.6 } },
-};
+export function AceternityHero({ afterHero }: AceternityHeroProps) {
+  const router = useRouter();
+  const acknowledgeIntro = useFlowBootstrapStore((state) => state.acknowledgeIntro);
 
-const toneClass: Record<"base" | "keyA" | "keyB" | "keyC", string> = {
-  base: styles.toneBase,
-  keyA: styles.toneKeyA,
-  keyB: styles.toneKeyB,
-  keyC: styles.toneKeyC,
-};
+  const startProfileStep = () => {
+    acknowledgeIntro();
+    router.push("/profile");
+  };
 
-const coreTypoCards = [
-  {
-    icon: Tag,
-    keyA: "브랜드",
-    mid: "마다 다른",
-    keyB: "사이즈",
-    post: "기준",
-    accentA: "#7bb8ff",
-    accentB: "#64a9ff",
-  },
-  {
-    icon: Shirt,
-    keyA: "내 기준 옷",
-    mid: "과 다른상품",
-    keyB: "실측",
-    post: "비교",
-    accentA: "#9ec8ff",
-    accentB: "#7fb8ff",
-  },
-  {
-    icon: Ruler,
-    keyA: "권장 사이즈",
-    mid: "와 부위별",
-    keyB: "핏",
-    post: "예측",
-    accentA: "#d7b6ff",
-    accentB: "#c79fff",
-  },
-] as const satisfies ReadonlyArray<{
-  icon: LucideIcon;
-  keyA: string;
-  mid: string;
-  keyB: string;
-  post: string;
-  accentA: string;
-  accentB: string;
-}>;
-
-export function AceternityHero() {
   return (
-    <section className={styles.section}>
-      <div className={styles.inner}>
-        <FlowStepCaption step={1} label="프로젝트 소개" align="center" />
-
-        <div className={styles.stack}>
-          <div className={styles.intro}>
-            <motion.p
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4 }}
-              className={styles.eyebrow}
-            >
-              AI Fit Recommender · Project S
-            </motion.p>
-            <motion.h1
-              variants={headlineContainer}
-              initial="hidden"
-              animate="show"
-              className={styles.headline}
-            >
-              {headlineSegments.map((seg, idx) => {
-                if ("br" in seg) return <br key={`br-${idx}`} />;
-                return (
-                  <motion.span
-                    key={`${seg.text}-${idx}`}
-                    variants={headlineWord}
-                    className={`${styles.headlineSegment} ${toneClass[seg.tone]}`}
-                  >
-                    {seg.text}
-                  </motion.span>
-                );
-              })}
-            </motion.h1>
-            <motion.p
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.55, delay: 0.12 }}
-              className={styles.lede}
-            >
-              키와 몸무게만으로 판단하지 않고, <br /> 실제로 잘 맞는 옷의 실측과 상품 사이즈표를 함께 비교합니다.
-            </motion.p>
-          </div>
-
-          <motion.div
-            initial="hidden"
-            animate="show"
-            variants={{ hidden: {}, show: { transition: { staggerChildren: 0.18, delayChildren: 0.7 } } }}
-            className={styles.cardGrid}
-          >
-            {coreTypoCards.map((item) => (
-              <motion.article
-                key={item.keyA}
-                variants={{ hidden: { opacity: 0, x: -18, y: 8 }, show: { opacity: 1, x: 0, y: 0 } }}
-                transition={{ duration: 0.45 }}
-                className={styles.cardArticle}
-              >
-                <div className={styles.typoCard}>
-                  <div className={styles.iconRing}>
-                    <item.icon strokeWidth={2} className={styles.iconSvg} aria-hidden />
-                  </div>
-
-                  <div className={styles.divider} aria-hidden />
-
-                  <div className={styles.cardCopy}>
-                    <p className={styles.cardLine1}>
-                      {item.keyA} {item.mid}
-                    </p>
-                    <p className={styles.cardLine2}>
-                      <span style={{ color: item.accentA }}>{item.keyB}</span>{" "}
-                      <span style={{ color: item.accentB }}>{item.post}</span>
-                    </p>
-                  </div>
-                </div>
-              </motion.article>
-            ))}
-          </motion.div>
-        </div>
-      </div>
-    </section>
+    <>
+      <section className={styles.hero}>
+        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45 }} className={styles.copy}>
+          <p className={styles.eyebrow}>AI FIT RECOMMENDER</p>
+          <h1>Find Your<br /><span>Perfect Fit.</span></h1>
+          <p className={styles.lede}>체형만 입력하면 AI가 상품별 실측을 비교해<br />가장 적합한 의류 사이즈를 추천합니다.</p>
+          <button className={styles.cta} onClick={startProfileStep}>지금 시작하기 <ArrowRight size={18} /></button>
+          <p className={styles.note}><Check size={15} /> 내 체형에 맞춘 개인화 추천</p>
+        </motion.div>
+        <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5, delay: 0.1 }} className={styles.mockup} aria-label="AI 추천 사이즈 미리보기">
+          <div className={styles.mockHeader}><span>Project S</span><span>AI Fit result</span></div>
+          <div className={styles.garment}><Shirt size={100} strokeWidth={1.25} /></div>
+          <div className={styles.result}><span>Recommended size</span><strong>M</strong><div><i /><i /><i /><i /></div><small>89% confidence</small></div>
+        </motion.div>
+      </section>
+      {afterHero}
+      <section id="about" className={styles.how}>
+        <div className={styles.sectionHeading}><p>HOW IT WORKS</p><h2>사이즈 선택, 더 이상 고민하지 마세요.</h2></div>
+        <div className={styles.steps}>{steps.map((step, index) => { const Icon = step.icon; return <motion.article whileHover={{ y: -4 }} transition={{ duration: 0.25 }} key={step.title} className={styles.step}><span>0{index + 1}</span><Icon size={25} /><h3>{step.title}</h3><p>{step.text}</p></motion.article>; })}</div>
+      </section>
+    </>
   );
 }

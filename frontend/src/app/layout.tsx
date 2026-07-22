@@ -2,6 +2,7 @@
 import type { Metadata } from "next";
 import { GlobalBackgroundFx } from "@/components/layout/GlobalBackgroundFx";
 import { Header } from "@/components/layout/Header";
+import { Footer } from "@/components/layout/Footer";
 import "@/styles/globals.css";
 import { AppProviders } from "./providers";
 
@@ -23,6 +24,7 @@ export default function RootLayout({
           <div style={{ position: "relative", zIndex: 1 }}>
             <Header />
             {children}
+            <Footer />
           </div>
         </AppProviders>
       </body>

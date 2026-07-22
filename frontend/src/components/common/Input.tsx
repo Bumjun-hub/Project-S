@@ -12,13 +12,13 @@ export function Input({ style, className, ...rest }: InputProps) {
         padding: "0.56rem 0.78rem",
         width: "100%",
         borderRadius: 12,
-        border: "0.5px solid rgba(175, 199, 255, 0.26)",
-        background: "linear-gradient(140deg, rgba(17, 24, 44, 0.34), rgba(9, 12, 24, 0.22))",
+        border: "1px solid var(--border)",
+        background: "#fff",
         color: "var(--fg)",
         outline: "none",
         backdropFilter: "blur(12px) saturate(1.1)",
         WebkitBackdropFilter: "blur(12px) saturate(1.1)",
-        boxShadow: "inset 0 0 0 0.5px rgba(210, 225, 255, 0.06), 0 4px 12px rgba(16, 24, 46, 0.14)",
+        boxShadow: "0 1px 2px rgba(15, 23, 42, 0.03)",
         ...style,
       }}
     />

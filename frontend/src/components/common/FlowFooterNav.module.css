@@ -90,3 +90,5 @@
     0 0 0 2px rgba(106, 140, 255, 0.35),
     0 4px 14px rgba(46, 67, 160, 0.22);
 }
+
+.link { border: 1px solid var(--border); background: #fff; color: var(--muted); box-shadow: none; }.link:hover { border-color: #93c5fd; background: #eff6ff; color: var(--primary); box-shadow: none; }.linkPrimary { border: 1px solid var(--primary); background: var(--primary); color: #fff; box-shadow: none; }.linkPrimary:hover { border-color: var(--primary-hover); background: var(--primary-hover); box-shadow: 0 7px 14px rgba(37,99,235,.18); }

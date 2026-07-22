@@ -179,6 +179,12 @@
   background: linear-gradient(90deg, rgba(95, 137, 255, 0.92), rgba(166, 112, 247, 0.9));
 }
 
+/* Calm, high-contrast report cards */
+.hero, .metricCard, .reportCard, .comparisonRow { border-color: var(--border); background: #fff; box-shadow: 0 4px 14px rgba(15,23,42,.045); }
+.hero::after { background: radial-gradient(ellipse at 50% 0%, rgba(37,99,235,.07), transparent 65%); }
+.heroMeta, .metricLabel, .metricSub, .reportBody, .reportList { color: var(--muted); }.heroProduct, .metricValue, .reportLead, .comparisonText { color: var(--fg); }
+.metricCard:first-child .metricValue { color: var(--primary); font-size: clamp(1.45rem, 3vw, 2rem); }.reportTitle { color: var(--primary); }.comparisonPill { border-color: #bfdbfe; background: #eff6ff; color: var(--primary); }.comparisonTrack { background: #dbeafe; }.comparisonFill { background: var(--primary); }
+
 @media (max-width: 900px) {
   .metricsGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));

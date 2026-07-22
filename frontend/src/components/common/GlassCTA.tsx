@@ -10,12 +10,12 @@ export function GlassCTA({ style, ...rest }: GlassCTAProps) {
       style={{
         padding: "0.72rem 1.1rem",
         borderRadius: 12,
-        border: "0.5px solid rgba(189, 210, 255, 0.44)",
-        background: "linear-gradient(135deg, rgba(78, 116, 245, 0.95), rgba(118, 94, 238, 0.9))",
-        color: "#f7fbff",
+        border: "1px solid var(--primary)",
+        background: "var(--primary)",
+        color: "#fff",
         fontWeight: 700,
-        boxShadow:
-          "0 14px 34px rgba(46, 67, 198, 0.44), 0 0 42px rgba(108, 131, 255, 0.28), inset 0 1px 0 rgba(255,255,255,0.2)",
+        boxShadow: "0 8px 16px rgba(37, 99, 235, 0.18)",
+        transition: "transform .2s ease, background .2s ease, box-shadow .2s ease",
         ...style,
       }}
     />

@@ -235,3 +235,6 @@
   text-decoration: underline;
   text-underline-offset: 3px;
 }
+
+/* Product detail: editorial white cards */
+.hero, .section, .aiSection { border-color: var(--border); background: #fff; box-shadow: 0 4px 16px rgba(15,23,42,.045); }.heroVisual { background: #eff6ff; }.imagePlaceholder { background: linear-gradient(135deg, #dbeafe, #f8fafc); }.imageTag, .description, .axisNote, .table td, .aiList { color: var(--muted); }.title, .price, .sectionTitle, .aiTitle { color: var(--fg); }.badge { border-color: #bfdbfe; background: #eff6ff; color: var(--primary); }.ctaPrimary { border-color: var(--primary); background: var(--primary); box-shadow: 0 8px 16px rgba(37,99,235,.18); }.ctaPrimary:hover { background: var(--primary-hover); transform: translateY(-1px); }.tableWrap, .table { border-color: var(--border); background: #fff; }.table th { background: var(--surface-subtle); color: var(--muted); }.table tbody tr:hover td { background: #f8fafc; }.backLink { color: var(--primary); }
