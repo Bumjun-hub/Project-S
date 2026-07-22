@@ -1,0 +1,50 @@
+.form {
+  display: grid;
+  gap: 1rem;
+}
+
+.field {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.label {
+  color: #dce6ff;
+  font-size: 0.9rem;
+}
+
+.error {
+  margin: -0.1rem 0 0;
+  color: #ffb8c2;
+  font-size: 0.82rem;
+}
+
+.message {
+  margin: 0;
+  border-radius: 12px;
+  padding: 0.75rem 0.9rem;
+  font-size: 0.9rem;
+}
+
+.success {
+  background: rgba(94, 188, 142, 0.16);
+  color: #c8ffd9;
+}
+
+.failure {
+  background: rgba(220, 91, 113, 0.16);
+  color: #ffc7cf;
+}
+
+.submit {
+  border: 0;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(95, 128, 255, 0.8), rgba(146, 101, 238, 0.78));
+  color: #fff;
+  font-weight: 700;
+  box-shadow: 0 10px 24px rgba(72, 99, 211, 0.28);
+}
+
+.submit:disabled {
+  opacity: 0.6;
+}

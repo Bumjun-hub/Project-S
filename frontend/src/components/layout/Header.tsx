@@ -24,6 +24,11 @@ const navItems = [
   { href: "/history", label: "기록" },
 ];
 
+const authItems = [
+  { href: "/login", label: "로그인" },
+  { href: "/signup", label: "회원가입" },
+];
+
 export function Header() {
   const pathname = usePathname();
 
@@ -79,6 +84,29 @@ export function Header() {
                     ? "linear-gradient(90deg, rgba(74, 86, 108, 0.5), rgba(91, 106, 135, 0.34))"
                     : "transparent",
                   boxShadow: active ? "0 4px 12px rgba(33, 40, 57, 0.32)" : "none",
+                }}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
+          {authItems.map((item) => {
+            const active = isActive(item.href);
+            const isSignup = item.href === "/signup";
+
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                aria-current={active ? "page" : undefined}
+                style={{
+                  ...linkStyle,
+                  color: isSignup || active ? "#eef3ff" : "var(--muted)",
+                  borderColor: isSignup || active ? "rgba(152, 168, 194, 0.42)" : "transparent",
+                  background: isSignup || active
+                    ? "linear-gradient(90deg, rgba(74, 86, 108, 0.5), rgba(91, 106, 135, 0.34))"
+                    : "transparent",
+                  boxShadow: isSignup || active ? "0 4px 12px rgba(33, 40, 57, 0.32)" : "none",
                 }}
               >
                 {item.label}

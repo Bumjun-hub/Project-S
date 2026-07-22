@@ -1,0 +1,25 @@
+.container {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 3.5rem 1.25rem;
+}
+
+.card {
+  position: relative;
+  padding: 1.5rem;
+}
+
+.content {
+  position: relative;
+  z-index: 1;
+}
+
+.title {
+  margin: 0;
+  font-size: 1.65rem;
+}
+
+.description {
+  margin: 0.55rem 0 1.5rem;
+  color: var(--muted);
+}
