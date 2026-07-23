@@ -2,13 +2,20 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { FlowFooterNav } from "@/components/common/FlowFooterNav";
 import { GlassCTA } from "@/components/common/GlassCTA";
 import { Input } from "@/components/common/Input";
 import { Select } from "@/components/common/Select";
 import { StepPageShell } from "@/components/layout/StepPageShell";
+import { createMyFit, getMyFit, updateMyFit } from "@/features/my-fit/api";
+import {
+  toLocalMyFit,
+  toMyFitCreateRequest,
+  toMyFitUpdateRequest,
+} from "@/features/my-fit/lib/myFitMapper";
 import { useFitReferenceStore } from "@/features/my-fit/store";
+import { ApiError } from "@/lib/apiClient";
 import type { FitCategory, FitFeeling, FitMeasurement } from "@/features/my-fit/types";
 import styles from "./MyFitScreen.module.css";
 
@@ -38,30 +45,48 @@ function feelingLabel(f: FitFeeling | ""): string {
   return "";
 }
 
+function isMyFitNotFound(error: unknown): boolean {
+  return (
+    error instanceof ApiError &&
+    error.status === 404 &&
+    error.code === "MY_FIT_NOT_FOUND"
+  );
+}
+
+function getErrorMessage(error: unknown): string {
+  if (error instanceof ApiError) return error.responseMessage;
+  if (error instanceof Error) return error.message;
+  return "기준 핏 저장 중 오류가 발생했습니다.";
+}
+
 export default function MyFitScreen() {
   const router = useRouter();
   const myFit = useFitReferenceStore((s) => s.myFit);
   const setMyFit = useFitReferenceStore((s) => s.setMyFit);
 
   const [category, setCategory] = useState<FitCategory>(myFit.selectedCategory);
-  const activeEntry = myFit.entries[category];
-  const activeMap = toMap(activeEntry?.measurements ?? []);
+  const initialEntry = myFit.entries[category];
+  const initialMap = toMap(initialEntry?.measurements ?? []);
 
-  const [garmentLabel, setGarmentLabel] = useState(activeEntry?.garmentLabel ?? "");
+  const [garmentLabel, setGarmentLabel] = useState(initialEntry?.garmentLabel ?? "");
   const [sizeByArea, setSizeByArea] = useState<Record<string, string>>(() => {
     const base: Record<string, string> = {};
     for (const area of CATEGORY_MEASUREMENTS[category]) {
-      base[area] = activeMap[area]?.sizeCm?.toString() ?? "";
+      base[area] = initialMap[area]?.sizeCm?.toString() ?? "";
     }
     return base;
   });
   const [feelingByArea, setFeelingByArea] = useState<Record<string, FitFeeling | "">>(() => {
     const base: Record<string, FitFeeling | ""> = {};
     for (const area of CATEGORY_MEASUREMENTS[category]) {
-      base[area] = activeMap[area]?.feeling ?? "";
+      base[area] = initialMap[area]?.feeling ?? "";
     }
     return base;
   });
+  const [serverMyFitExists, setServerMyFitExists] = useState(false);
+  const [isLoadingMyFit, setIsLoadingMyFit] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
   const areas = CATEGORY_MEASUREMENTS[category];
 
@@ -82,9 +107,8 @@ export default function MyFitScreen() {
 
   const categoryLabel = CATEGORY_OPTIONS.find((o) => o.value === category)?.label ?? category;
 
-  function syncCategory(next: FitCategory) {
-    setCategory(next);
-    const entry = myFit.entries[next];
+  function syncEntryForm(next: FitCategory, sourceMyFit = myFit) {
+    const entry = sourceMyFit.entries[next];
     const map = toMap(entry?.measurements ?? []);
     setGarmentLabel(entry?.garmentLabel ?? "");
     const nextSize: Record<string, string> = {};
@@ -97,10 +121,62 @@ export default function MyFitScreen() {
     setFeelingByArea(nextFeeling);
   }
 
-  function submit(e: React.FormEvent) {
+  function syncCategory(next: FitCategory) {
+    setCategory(next);
+    syncEntryForm(next);
+  }
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadMyFit() {
+      setIsLoadingMyFit(true);
+      setFormError(null);
+
+      try {
+        const response = await getMyFit();
+        if (cancelled) return;
+
+        const localMyFit = toLocalMyFit(response);
+        setMyFit(localMyFit);
+        setServerMyFitExists(true);
+        setCategory(localMyFit.selectedCategory);
+        syncEntryForm(localMyFit.selectedCategory, localMyFit);
+      } catch (error: unknown) {
+        if (cancelled) return;
+
+        if (isMyFitNotFound(error)) {
+          setServerMyFitExists(false);
+          return;
+        }
+
+        setFormError(getErrorMessage(error));
+      } finally {
+        if (!cancelled) {
+          setIsLoadingMyFit(false);
+        }
+      }
+    }
+
+    void loadMyFit();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [setMyFit]);
+
+  async function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (isSaving || isLoadingMyFit) return;
+
+    setFormError(null);
+    if (category === "etc") {
+      setFormError("기타 카테고리는 아직 서버 저장을 지원하지 않습니다. 상의 또는 하의를 선택해 주세요.");
+      return;
+    }
+
     if (garmentLabel.trim() === "") {
-      alert("기준 옷을 구분할 이름(예: 잘 맞는 셔츠)을 입력해 주세요.");
+      setFormError("기준 옷을 구분할 이름(예: 잘 맞는 셔츠)을 입력해 주세요.");
       return;
     }
 
@@ -114,17 +190,17 @@ export default function MyFitScreen() {
       .filter((m) => m.sizeCm != null || m.feeling != null);
 
     if (measurements.length === 0) {
-      alert("실측 사이즈를 1개 이상 입력해 주세요.");
+      setFormError("실측 사이즈를 1개 이상 입력해 주세요.");
       return;
     }
 
     const invalid = measurements.find((m) => m.sizeCm == null || Number.isNaN(m.sizeCm) || m.feeling == null);
     if (invalid) {
-      alert("입력한 실측마다 cm 값과 착용감(작았음/딱맞음/컸음) 선택을 함께 완료해 주세요.");
+      setFormError("입력한 실측마다 cm 값과 착용감(작았음/딱맞음/컸음) 선택을 함께 완료해 주세요.");
       return;
     }
 
-    setMyFit({
+    const nextMyFit = {
       selectedCategory: category,
       entries: {
         ...myFit.entries,
@@ -133,8 +209,40 @@ export default function MyFitScreen() {
           measurements,
         },
       },
-    });
-    router.push("/products");
+    };
+
+    setIsSaving(true);
+    try {
+      const response = serverMyFitExists
+        ? await updateExistingMyFit(nextMyFit)
+        : await createNewMyFit(nextMyFit);
+      const syncedMyFit = toLocalMyFit(response);
+      setMyFit(syncedMyFit);
+      setServerMyFitExists(true);
+      router.push("/products");
+    } catch (error: unknown) {
+      setFormError(getErrorMessage(error));
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  async function createNewMyFit(nextMyFit: typeof myFit) {
+    const request = toMyFitCreateRequest(nextMyFit);
+    if (!request) {
+      throw new Error("서버에 저장할 상의 또는 하의 기준 핏 정보를 입력해 주세요.");
+    }
+
+    return createMyFit(request);
+  }
+
+  async function updateExistingMyFit(nextMyFit: typeof myFit) {
+    const request = toMyFitUpdateRequest(nextMyFit);
+    if (!request) {
+      throw new Error("서버에 저장할 상의 또는 하의 기준 핏 정보를 입력해 주세요.");
+    }
+
+    return updateMyFit(request);
   }
 
   return (
@@ -146,6 +254,9 @@ export default function MyFitScreen() {
       maxWidth={720}
       panelClassName="myfit-panel"
     >
+      {isLoadingMyFit ? (
+        <p style={{ margin: 0, color: "var(--muted)" }}>기준 핏 정보를 불러오는 중입니다.</p>
+      ) : (
       <form className={styles.form} onSubmit={submit}>
         <section className={styles.summaryCard} aria-label="내 기준 옷 요약">
           <p className={styles.summaryKicker}>REFERENCE GARMENT</p>
@@ -253,9 +364,17 @@ export default function MyFitScreen() {
         </p>
 
         <div className={styles.ctaWrap}>
-          <GlassCTA type="submit">저장 후 상품 목록으로</GlassCTA>
+          {formError ? (
+            <p style={{ margin: "0 0 12px", color: "#dc2626", fontWeight: 600 }}>
+              {formError}
+            </p>
+          ) : null}
+          <GlassCTA type="submit" disabled={isSaving}>
+            {isSaving ? "저장 중..." : serverMyFitExists ? "수정 후 상품 목록으로" : "저장 후 상품 목록으로"}
+          </GlassCTA>
         </div>
       </form>
+      )}
 
       <FlowFooterNav
         items={[
