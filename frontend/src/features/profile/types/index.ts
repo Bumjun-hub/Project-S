@@ -6,3 +6,47 @@ export type UserProfileState = {
   /** 체형 특징 태그(프로필 화면에서 다중 선택). */
   bodyShapeTags: string[];
 };
+
+export type BodyProfileGender =
+  | "MALE"
+  | "FEMALE";
+
+export type BodyFeature =
+  | "DEVELOPED_UPPER_BODY"
+  | "DEVELOPED_LOWER_BODY"
+  | "BROAD_SHOULDERS"
+  | "NEEDS_THIGH_ROOM"
+  | "CONCERNED_ABOUT_ABDOMEN"
+  | "LONG_ARMS"
+  | "LONG_LEGS"
+  | "PREFERS_RELAXED_FIT";
+
+export interface BodyProfileCreateRequest {
+  height: number;
+  weight: number;
+  gender: BodyProfileGender;
+  bodyFeatures: BodyFeature[];
+}
+
+export interface BodyProfileUpdateRequest {
+  height?: number;
+  weight?: number;
+  gender?: BodyProfileGender;
+  bodyFeatures?: BodyFeature[];
+}
+
+export interface BodyProfileResponse {
+  id: number;
+  height: number;
+  weight: number;
+  gender: BodyProfileGender;
+  bodyFeatures: BodyFeature[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ApiResponse<T> {
+  success: boolean;
+  message: string;
+  data: T;
+}

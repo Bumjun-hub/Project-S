@@ -2,13 +2,23 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { FlowFooterNav } from "@/components/common/FlowFooterNav";
 import { GlassCTA } from "@/components/common/GlassCTA";
 import { Input } from "@/components/common/Input";
 import { StepPageShell } from "@/components/layout/StepPageShell";
+import {
+  toBodyProfileCreateRequest,
+  toLocalUserProfile,
+} from "@/features/profile/lib/bodyProfileMapper";
+import {
+  useBodyProfileQuery,
+  useCreateBodyProfileMutation,
+  useUpdateBodyProfileMutation,
+} from "@/features/profile/hooks/useBodyProfile";
 import type { UserProfileState } from "@/features/profile/types";
 import { useUserProfileStore } from "@/features/profile/store";
+import { ApiError } from "@/lib/apiClient";
 import tagStyles from "./ProfileBodyShapeTags.module.css";
 import styles from "./ProfileScreen.module.css";
 
@@ -50,17 +60,54 @@ function formatWeightPreview(raw: string): string {
   return `${n} kg`;
 }
 
+function isBodyProfileNotFound(error: unknown): boolean {
+  return (
+    error instanceof ApiError &&
+    error.status === 404 &&
+    error.code === "BODY_PROFILE_NOT_FOUND"
+  );
+}
+
+function getErrorMessage(error: unknown): string {
+  if (error instanceof ApiError) return error.responseMessage;
+  if (error instanceof Error) return error.message;
+  return "신체 프로필 저장 중 오류가 발생했습니다.";
+}
+
 export default function ProfileScreen() {
   const router = useRouter();
   const profile = useUserProfileStore((s) => s.profile);
   const setProfile = useUserProfileStore((s) => s.setProfile);
+  const bodyProfileQuery = useBodyProfileQuery();
+  const createMutation = useCreateBodyProfileMutation();
+  const updateMutation = useUpdateBodyProfileMutation();
+  const initializedFromServerRef = useRef(false);
 
   const [height, setHeight] = useState(profile.heightCm?.toString() ?? "");
   const [weight, setWeight] = useState(profile.weightKg?.toString() ?? "");
   const [gender, setGender] = useState<UserProfileState["gender"]>(profile.gender);
   const [bodyShapeTags, setBodyShapeTags] = useState<string[]>(profile.bodyShapeTags ?? []);
+  const [formError, setFormError] = useState<string | null>(null);
 
   const summaryGender = useMemo(() => genderLabel(gender), [gender]);
+  const isCreateMode = bodyProfileQuery.isError && isBodyProfileNotFound(bodyProfileQuery.error);
+  const isEditMode = bodyProfileQuery.isSuccess && bodyProfileQuery.data != null;
+  const hasQueryError = bodyProfileQuery.isError && !isCreateMode;
+  const queryErrorMessage = hasQueryError
+    ? getErrorMessage(bodyProfileQuery.error) || "신체 프로필을 불러오지 못했습니다."
+    : null;
+  const isSaving = createMutation.isPending || updateMutation.isPending;
+
+  useEffect(() => {
+    if (!bodyProfileQuery.data || initializedFromServerRef.current) return;
+
+    const localProfile = toLocalUserProfile(bodyProfileQuery.data);
+    setHeight(localProfile.heightCm?.toString() ?? "");
+    setWeight(localProfile.weightKg?.toString() ?? "");
+    setGender(localProfile.gender);
+    setBodyShapeTags(localProfile.bodyShapeTags);
+    initializedFromServerRef.current = true;
+  }, [bodyProfileQuery.data]);
 
   function toggleBodyShapeTag(label: string) {
     setBodyShapeTags((prev) =>
@@ -68,16 +115,50 @@ export default function ProfileScreen() {
     );
   }
 
-  function submit(e: React.FormEvent) {
+  async function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (isSaving || hasQueryError) return;
+
+    setFormError(null);
     const h = height.trim() === "" ? null : Number(height);
     const w = weight.trim() === "" ? null : Number(weight);
     if (h == null || Number.isNaN(h) || w == null || Number.isNaN(w)) {
-      alert("키와 몸무게를 숫자로 입력해 주세요.");
+      setFormError("키와 몸무게를 숫자로 입력해 주세요.");
       return;
     }
-    setProfile({ heightCm: h, weightKg: w, gender: gender || "", bodyShapeTags });
-    router.push("/my-fit");
+
+    const localProfile: UserProfileState = {
+      heightCm: h,
+      weightKg: w,
+      gender,
+      bodyShapeTags,
+    };
+    const createRequest = toBodyProfileCreateRequest(localProfile);
+
+    if (!createRequest) {
+      setFormError(
+        gender === "" || gender === "other"
+          ? "현재는 남성 또는 여성만 선택할 수 있습니다."
+          : "입력값을 확인해 주세요.",
+      );
+      return;
+    }
+
+    try {
+      const response = isEditMode
+        ? await updateMutation.mutateAsync({
+            height: createRequest.height,
+            weight: createRequest.weight,
+            gender: createRequest.gender,
+            bodyFeatures: createRequest.bodyFeatures,
+          })
+        : await createMutation.mutateAsync(createRequest);
+      const syncedProfile = toLocalUserProfile(response);
+      setProfile(syncedProfile);
+      router.push("/my-fit");
+    } catch (error: unknown) {
+      setFormError(getErrorMessage(error));
+    }
   }
 
   const heightPreview = formatHeightPreview(height);
@@ -92,6 +173,18 @@ export default function ProfileScreen() {
       maxWidth={960}
       panelClassName="profile-panel"
     >
+      {bodyProfileQuery.isPending ? (
+        <p style={{ margin: 0, color: "var(--muted)" }}>신체 프로필을 불러오는 중입니다.</p>
+      ) : hasQueryError ? (
+        <div style={{ display: "grid", gap: 12 }}>
+          <p style={{ margin: 0, color: "#dc2626" }}>
+            {queryErrorMessage || "신체 프로필을 불러오지 못했습니다."}
+          </p>
+          <GlassCTA type="button" onClick={() => void bodyProfileQuery.refetch()}>
+            다시 시도
+          </GlassCTA>
+        </div>
+      ) : (
       <div className={styles.layout}>
         <div className={styles.formColumn}>
           <form className={styles.form} onSubmit={submit}>
@@ -174,7 +267,14 @@ export default function ProfileScreen() {
             </section>
 
             <div className={styles.ctaWrap}>
-              <GlassCTA type="submit">저장 후 다음</GlassCTA>
+              {formError ? (
+                <p style={{ margin: "0 0 12px", color: "#dc2626", fontWeight: 600 }}>
+                  {formError}
+                </p>
+              ) : null}
+              <GlassCTA type="submit" disabled={isSaving || hasQueryError}>
+                {isSaving ? "저장 중..." : isEditMode ? "수정 후 다음" : "저장 후 다음"}
+              </GlassCTA>
             </div>
           </form>
         </div>
@@ -222,6 +322,7 @@ export default function ProfileScreen() {
           </div>
         </aside>
       </div>
+      )}
 
       <FlowFooterNav items={[{ href: "/", label: "홈" }]} />
     </StepPageShell>
