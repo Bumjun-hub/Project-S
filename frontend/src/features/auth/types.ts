@@ -10,6 +10,19 @@ export type SignupResponseData = {
   nickname: string;
 };
 
+export type LoginRequest = {
+  email: string;
+  password: string;
+};
+
+export type LoginResponseData = {
+  accessToken: string;
+  tokenType: string;
+  memberId: number;
+  email: string;
+  nickname: string;
+};
+
 export type ApiSuccess<T> = {
   success: true;
   message: string;
