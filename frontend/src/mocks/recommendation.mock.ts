@@ -1,73 +1,66 @@
 // 이 파일은 개발용 mock 추천 결과 생성 로직을 제공합니다.
-import type { MockProduct } from "@/features/product/types";
+import type { Product, ProductMeasurementArea, ProductSize } from "@/features/product/types";
 import type { FitCategory, FitMeasurement, MyFitState } from "@/features/my-fit/types";
 import type { RecommendationRecord } from "@/features/history/types";
 import type { UserProfileState } from "@/features/profile/types";
 
+const PRIMARY_AREA_BY_CATEGORY: Record<FitCategory, ProductMeasurementArea> = {
+  top: "CHEST_WIDTH",
+  bottom: "WAIST_WIDTH",
+  etc: "CHEST_WIDTH",
+};
+
 function pickNearestLabel(
-  product: MockProduct,
+  product: Product,
+  area: ProductMeasurementArea,
   valueCm: number,
 ): { label: string; reason: string } {
-  const axisLabel = product.chartAxis === "chest" ? "가슴" : "허리";
-  const inBand = product.sizeChart.find((r) => valueCm >= r.min && valueCm <= r.max);
-  if (inBand) {
-    return {
-      label: inBand.label,
-      reason: `${axisLabel} 실측 ${valueCm}cm이 해당 브랜드 표의 ${inBand.label} 구간 안에 포함됩니다.`,
-    };
-  }
-  let nearest = product.sizeChart[0]!;
+  const rows = product.sizes
+    .map((size) => ({
+      label: size.label,
+      measurement: size.measurements.find((m) => m.area === area),
+    }))
+    .filter((row): row is { label: string; measurement: NonNullable<typeof row.measurement> } =>
+      Boolean(row.measurement),
+    );
+  const areaLabel = rows[0]?.measurement.areaLabel ?? "주요 부위";
+  let nearest = rows[0]!;
   let bestDist = Infinity;
-  for (const row of product.sizeChart) {
-    const mid = (row.min + row.max) / 2;
-    const d = Math.abs(valueCm - mid);
+
+  for (const row of rows) {
+    const d = Math.abs(valueCm - row.measurement.sizeCm);
     if (d < bestDist) {
       bestDist = d;
       nearest = row;
     }
   }
+
   return {
     label: nearest.label,
-    reason: `${axisLabel} 실측 ${valueCm}cm에 가장 가까운 표 중심값은 ${nearest.label}입니다(구간 밖 근사).`,
+    reason: `${areaLabel} 실측 ${valueCm}cm에 가장 가까운 상품 실측은 ${nearest.label}입니다.`,
   };
 }
 
-function pickEntryCategory(product: MockProduct): FitCategory {
+function pickEntryCategory(product: Product): FitCategory {
   if (product.category === "하의") return "bottom";
   if (product.category === "상의") return "top";
   return "etc";
 }
 
-function pickMainReferenceCm(myFit: MyFitState, category: FitCategory, axis: MockProduct["chartAxis"]) {
-  const preferredArea = axis === "chest" ? "가슴단면" : "허리단면";
+function pickMainReferenceCm(myFit: MyFitState, category: FitCategory, preferredArea: ProductMeasurementArea) {
+  const preferredAreaLabel = preferredArea === "WAIST_WIDTH" ? "허리단면" : "가슴단면";
   const entry = myFit.entries[category];
-  const fromPreferred = entry.measurements.find((m) => m.area === preferredArea && m.sizeCm != null)?.sizeCm;
+  const fromPreferred = entry.measurements.find((m) => m.area === preferredAreaLabel && m.sizeCm != null)?.sizeCm;
   if (fromPreferred != null) return fromPreferred;
   return entry.measurements.find((m) => m.sizeCm != null)?.sizeCm ?? null;
 }
 
 function estimateProductMeasurements(
-  product: MockProduct,
+  product: Product,
   recommendedLabel: string,
 ): Record<string, number> {
-  const row = product.sizeChart.find((r) => r.label === recommendedLabel) ?? product.sizeChart[0]!;
-  const mid = (row.min + row.max) / 2;
-  if (product.chartAxis === "chest") {
-    return {
-      총장: Math.round((mid * 0.72) * 10) / 10,
-      어깨너비: Math.round((mid / 2.2) * 10) / 10,
-      가슴단면: Math.round(mid * 10) / 10,
-      소매길이: Math.round((mid * 0.62) * 10) / 10,
-    };
-  }
-  return {
-    총장: Math.round((mid * 1.23) * 10) / 10,
-    허리단면: Math.round(mid * 10) / 10,
-    "엉덩이 단면": Math.round((mid * 1.22) * 10) / 10,
-    "허벅지 단면": Math.round((mid * 0.72) * 10) / 10,
-    밑위: Math.round((mid * 0.42) * 10) / 10,
-    밑단단면: Math.round((mid * 0.31) * 10) / 10,
-  };
+  const size: ProductSize = product.sizes.find((s) => s.label === recommendedLabel) ?? product.sizes[0]!;
+  return Object.fromEntries(size.measurements.map((measurement) => [measurement.areaLabel, measurement.sizeCm]));
 }
 
 /** 마지막 음절 받침 유무에 따라 조사 은/는 선택 */
@@ -93,21 +86,22 @@ function classifyFit(measurement: FitMeasurement, estimatedCm: number): string {
 }
 
 export function buildMockRecommendation(input: {
-  product: MockProduct;
+  product: Product;
   profile: UserProfileState;
   myFit: MyFitState;
 }): Omit<RecommendationRecord, "id" | "createdAt"> {
   const category = pickEntryCategory(input.product);
+  const primaryArea = PRIMARY_AREA_BY_CATEGORY[category];
   const chestEstimate =
     input.profile.weightKg != null ? Math.round(72 + input.profile.weightKg * 0.35) : 96;
   const waistEstimate =
     input.profile.weightKg != null ? Math.round(70 + input.profile.weightKg * 0.32) : 80;
   const mainRef =
-    pickMainReferenceCm(input.myFit, category, input.product.chartAxis) ??
-    (input.product.chartAxis === "chest" ? chestEstimate : waistEstimate);
+    pickMainReferenceCm(input.myFit, category, primaryArea) ??
+    (primaryArea === "CHEST_WIDTH" ? chestEstimate : waistEstimate);
 
   const valueCm = mainRef;
-  const { label, reason } = pickNearestLabel(input.product, valueCm);
+  const { label, reason } = pickNearestLabel(input.product, primaryArea, valueCm);
   const estimated = estimateProductMeasurements(input.product, label);
 
   const entry = input.myFit.entries[category];

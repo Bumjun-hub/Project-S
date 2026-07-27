@@ -7,7 +7,7 @@ import Link from "next/link";
 import { type FormEvent, useState } from "react";
 import { Button } from "@/components/common/Button";
 import { Input } from "@/components/common/Input";
-import { MOCK_PRODUCTS } from "@/mocks/products.mock";
+import { useProductsQuery } from "@/features/product/api/use-products-query";
 import styles from "./LandingShowcase.module.css";
 
 const reveal = { initial: { opacity: 0, y: 22 }, whileInView: { opacity: 1, y: 0 }, viewport: { once: true, amount: 0.18 }, transition: { duration: 0.45 } };
@@ -19,6 +19,7 @@ const features = [
 ];
 
 export function LandingShowcase() {
+  const { data: products = [] } = useProductsQuery();
   const [loading, setLoading] = useState(false);
   const [showResult, setShowResult] = useState(false);
 
@@ -39,7 +40,7 @@ export function LandingShowcase() {
               <label><span>키</span><Input type="number" min={120} max={220} placeholder="172 cm" required /></label>
               <label><span>몸무게</span><Input type="number" min={30} max={200} placeholder="63 kg" required /></label>
               <label><span>체형</span><select required defaultValue=""><option value="" disabled>체형 선택</option><option>슬림</option><option>보통</option><option>탄탄</option></select></label>
-              <label><span>상품</span><select required defaultValue=""><option value="" disabled>상품 선택</option>{MOCK_PRODUCTS.map((product) => <option value={product.id} key={product.id}>{product.brand} · {product.name}</option>)}</select></label>
+              <label><span>상품</span><select required defaultValue=""><option value="" disabled>상품 선택</option>{products.map((product) => <option value={product.id} key={product.id}>{product.brand} · {product.name}</option>)}</select></label>
             </div>
             <Button type="submit" className={styles.recommendButton} disabled={loading}>{loading ? <><span className={styles.spinner} /> 분석 중...</> : <>추천받기 <Sparkles size={17} /></>}</Button>
           </form>
@@ -55,7 +56,7 @@ export function LandingShowcase() {
 
       <motion.section {...reveal} className={styles.section} aria-labelledby="popular-title">
         <div className={styles.headingRow}><div className={styles.heading}><p>POPULAR PRODUCTS</p><h2 id="popular-title">많이 찾는 상품</h2></div><Link href="/products" className={styles.viewAll}>전체 상품 보기 <ArrowRight size={17} /></Link></div>
-        <div className={styles.productGrid}>{MOCK_PRODUCTS.slice(0, 4).map((product, index) => <motion.article whileHover={{ y: -5 }} transition={{ duration: 0.25 }} className={styles.productCard} key={product.id}><Link href={`/products/${product.id}`} className={styles.productImage}><Image src={`/images/cloth${index + 1}.jpg`} alt="" fill sizes="(max-width: 640px) 100vw, (max-width: 960px) 50vw, 25vw" /></Link><div className={styles.productBody}><p>{product.brand} · {product.category}</p><h3><Link href={`/products/${product.id}`}>{product.name}</Link></h3><strong>{product.priceKrw.toLocaleString("ko-KR")}원</strong></div></motion.article>)}</div>
+        <div className={styles.productGrid}>{products.slice(0, 4).map((product, index) => <motion.article whileHover={{ y: -5 }} transition={{ duration: 0.25 }} className={styles.productCard} key={product.id}><Link href={`/products/${product.id}`} className={styles.productImage}><Image src={`/images/cloth${index + 1}.jpg`} alt="" fill sizes="(max-width: 640px) 100vw, (max-width: 960px) 50vw, 25vw" /></Link><div className={styles.productBody}><p>{product.brand} · {product.category}</p><h3><Link href={`/products/${product.id}`}>{product.name}</Link></h3><strong>{product.priceKrw.toLocaleString("ko-KR")}원</strong></div></motion.article>)}</div>
       </motion.section>
 
       <motion.section {...reveal} className={styles.section} aria-labelledby="why-title">

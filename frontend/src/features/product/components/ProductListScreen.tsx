@@ -10,7 +10,7 @@ import { Input } from "@/components/common/Input";
 import { Skeleton } from "@/components/common/Skeleton";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { useProductsQuery } from "@/features/product/api/use-products-query";
-import type { MockProduct } from "@/features/product/types";
+import type { Product } from "@/features/product/types";
 import styles from "./ProductListScreen.module.css";
 
 type CategoryFilter = "all" | "상의" | "하의" | "아우터";
@@ -22,7 +22,7 @@ const FILTER_OPTIONS: Array<{ value: CategoryFilter; label: string }> = [
   { value: "아우터", label: "아우터" },
 ];
 
-function matchesSearch(p: MockProduct, q: string) {
+function matchesSearch(p: Product, q: string) {
   const t = q.trim().toLowerCase();
   if (t === "") return true;
   return (
@@ -52,7 +52,7 @@ export default function ProductListScreen() {
       <div className={styles.page}>
         <header>
           <h1 style={{ marginTop: 0, marginBottom: "0.35rem" }}>상품 탐색</h1>
-          <p className={styles.metaHint}>TanStack Query + mock API · 사이즈표 기반 mock 분석</p>
+          <p className={styles.metaHint}>TanStack Query + Product API · 실측 사이즈표 기반 분석</p>
         </header>
 
         <section className={styles.intro} aria-label="페이지 안내">

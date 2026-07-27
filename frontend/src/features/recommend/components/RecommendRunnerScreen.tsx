@@ -8,9 +8,9 @@ import { GlassStateBlock } from "@/components/common/GlassStateBlock";
 import { StepPageShell } from "@/components/layout/StepPageShell";
 import { useAnalysisHistoryStore } from "@/features/history/store";
 import { useFitReferenceStore } from "@/features/my-fit/store";
+import { fetchProductById } from "@/features/product/api/products-api";
 import { useUserProfileStore } from "@/features/profile/store";
 import { stableRecommendationRecordId } from "@/features/recommend/utils/stable-record-id";
-import { getMockProduct } from "@/mocks/products.mock";
 import { buildMockRecommendation, delayMs } from "@/mocks/recommendation.mock";
 
 export default function RecommendRunnerScreen({ productId }: { productId: string }) {
@@ -25,7 +25,7 @@ export default function RecommendRunnerScreen({ productId }: { productId: string
     let cancelled = false;
 
     async function run() {
-      const product = getMockProduct(productId);
+      const product = await fetchProductById(productId);
       if (!product) {
         setError("상품을 찾을 수 없습니다.");
         return;
@@ -84,8 +84,8 @@ export default function RecommendRunnerScreen({ productId }: { productId: string
     <StepPageShell
       step={6}
       label="사이즈 분석"
-      title="mock AI 분석 중…"
-      description="프로필·기준 옷·상품 사이즈표를 합쳐 권장 라벨을 만듭니다."
+      title="AI 분석 중…"
+      description="프로필·기준 옷·상품 실측표를 합쳐 권장 라벨을 만듭니다."
       maxWidth={560}
       panelClassName="result-panel-shell"
     >

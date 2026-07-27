@@ -3,18 +3,29 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { FlowStepCaption } from "@/components/common/FlowStepCaption";
 import { PageContainer } from "@/components/layout/PageContainer";
-import { getMockProduct } from "@/mocks/products.mock";
+import { fetchProductById } from "@/features/product/api/products-api";
+import type { ProductMeasurementArea } from "@/features/product/types";
 import styles from "./ProductDetailScreen.module.css";
 
-export default function ProductDetailScreen({ productId }: { productId: string }) {
-  const product = getMockProduct(productId);
+const AREA_ORDER: ProductMeasurementArea[] = [
+  "TOTAL_LENGTH",
+  "SHOULDER_WIDTH",
+  "CHEST_WIDTH",
+  "SLEEVE_LENGTH",
+  "WAIST_WIDTH",
+  "HIP_WIDTH",
+  "THIGH_WIDTH",
+  "RISE",
+  "HEM_WIDTH",
+];
+
+export default async function ProductDetailScreen({ productId }: { productId: string }) {
+  const product = await fetchProductById(productId);
   if (!product) notFound();
 
-  const isChest = product.chartAxis === "chest";
-  const axisTitle = isChest ? "가슴 기준" : "허리 기준";
-  const axisDescription = isChest
-    ? "이 표는 가슴 둘레(cm)를 축으로 한 사이즈 구간입니다."
-    : "이 표는 허리 둘레(cm)를 축으로 한 사이즈 구간입니다.";
+  const areas = AREA_ORDER
+    .map((area) => product.sizes.flatMap((size) => size.measurements).find((m) => m.area === area))
+    .filter((measurement): measurement is NonNullable<typeof measurement> => Boolean(measurement));
 
   return (
     <PageContainer maxWidth={960}>
@@ -43,26 +54,31 @@ export default function ProductDetailScreen({ productId }: { productId: string }
         <section className={styles.section} aria-labelledby="size-chart-heading">
           <p className={styles.sectionTitle}>SIZE CHART</p>
           <h2 id="size-chart-heading" className={styles.sectionHeading}>
-            사이즈표 (mock)
+            실측 사이즈표
           </h2>
           <p className={styles.axisNote}>
-            <strong>{axisTitle}</strong> — {axisDescription}
+            <strong>cm 기준</strong> — 기준 옷 실측과 같은 부위 단위로 비교할 수 있습니다.
           </p>
           <div className={styles.tableWrap}>
             <table className={styles.table}>
               <thead>
                 <tr>
                   <th scope="col">라벨</th>
-                  <th scope="col">최소 (cm)</th>
-                  <th scope="col">최대 (cm)</th>
+                  {areas.map((measurement) => (
+                    <th scope="col" key={measurement.area}>
+                      {measurement.areaLabel}
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
-                {product.sizeChart.map((row) => (
-                  <tr key={row.label}>
-                    <td>{row.label}</td>
-                    <td>{row.min}</td>
-                    <td>{row.max}</td>
+                {product.sizes.map((size) => (
+                  <tr key={size.id}>
+                    <td>{size.label}</td>
+                    {areas.map((area) => {
+                      const measurement = size.measurements.find((m) => m.area === area.area);
+                      return <td key={area.area}>{measurement ? measurement.sizeCm : "-"}</td>;
+                    })}
                   </tr>
                 ))}
               </tbody>
@@ -76,8 +92,8 @@ export default function ProductDetailScreen({ productId }: { productId: string }
           </h2>
           <ul className={styles.aiList}>
             <li>이 상품은 입력한 프로필과 기준 옷 실측을 기반으로 분석됩니다.</li>
-            <li>브랜드 사이즈표와 기준 옷 착용감을 비교합니다.</li>
-            <li>분석 결과는 mock AI 리포트로 저장됩니다.</li>
+            <li>브랜드 실측 사이즈표와 기준 옷 착용감을 비교합니다.</li>
+            <li>분석 결과는 현재 mock AI 리포트로 저장됩니다.</li>
           </ul>
         </section>
 
