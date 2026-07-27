@@ -160,6 +160,50 @@ class MyFitServiceTest {
 	}
 
 	@Test
+	void update_reuses_existing_entry_and_measurement_when_category_and_area_match() {
+		Member member = createMember();
+		MyFit myFit = createMyFit(member);
+		MyFitEntry existingEntry = myFit.getEntries().get(0);
+		MyFitMeasurement existingMeasurement = existingEntry.getMeasurements().get(0);
+		MyFitUpdateRequest request = new MyFitUpdateRequest(List.of(
+			new MyFitEntryRequest(
+				FitCategory.TOP,
+				"updated shirt",
+				List.of(
+					new MyFitMeasurementRequest(
+						MeasurementArea.CHEST_WIDTH,
+						new BigDecimal("54.00"),
+						FitFeeling.SMALL
+					),
+					new MyFitMeasurementRequest(
+						MeasurementArea.TOTAL_LENGTH,
+						new BigDecimal("70.00"),
+						FitFeeling.LARGE
+					)
+				)
+			)
+		));
+		when(memberRepository.findByEmail(EMAIL)).thenReturn(Optional.of(member));
+		when(myFitRepository.findByMember(member)).thenReturn(Optional.of(myFit));
+
+		MyFitResponse response = myFitService.update(EMAIL, request);
+
+		assertThat(response.entries()).hasSize(1);
+		assertThat(myFit.getEntries()).containsExactly(existingEntry);
+		assertThat(existingEntry.getCategory()).isEqualTo(FitCategory.TOP);
+		assertThat(existingEntry.getGarmentLabel()).isEqualTo("updated shirt");
+		assertThat(existingEntry.getMeasurements()).hasSize(2);
+		assertThat(existingEntry.getMeasurements()).contains(existingMeasurement);
+		assertThat(existingMeasurement.getArea()).isEqualTo(MeasurementArea.CHEST_WIDTH);
+		assertThat(existingMeasurement.getSizeCm()).isEqualByComparingTo("54.00");
+		assertThat(existingMeasurement.getFeeling()).isEqualTo(FitFeeling.SMALL);
+		assertThat(existingEntry.getMeasurements())
+			.extracting(MyFitMeasurement::getArea)
+			.containsExactlyInAnyOrder(MeasurementArea.CHEST_WIDTH, MeasurementArea.TOTAL_LENGTH);
+		verify(myFitRepository, never()).save(any());
+	}
+
+	@Test
 	void update_fail_when_request_is_empty() {
 		MyFitUpdateRequest request = new MyFitUpdateRequest(null);
 

@@ -3,7 +3,9 @@ package com.projects.backend.myfit.entity;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import com.projects.backend.member.entity.Member;
 
@@ -66,19 +68,43 @@ public class MyFit {
 	}
 
 	public void updateEntries(List<MyFitEntry> entries) {
-		this.entries.clear();
 		if (entries == null) {
+			this.entries.clear();
 			return;
 		}
 
 		for (MyFitEntry entry : entries) {
-			addEntry(entry);
+			MyFitEntry existingEntry = findEntryByCategory(entry.getCategory());
+			if (existingEntry == null) {
+				addEntry(entry);
+				continue;
+			}
+
+			existingEntry.update(entry.getGarmentLabel(), entry.getMeasurements());
 		}
+
+		removeEntriesNotIn(entries);
 	}
 
 	private void addEntry(MyFitEntry entry) {
 		entry.assignMyFit(this);
 		this.entries.add(entry);
+	}
+
+	private MyFitEntry findEntryByCategory(FitCategory category) {
+		return entries.stream()
+			.filter(entry -> entry.getCategory() == category)
+			.findFirst()
+			.orElse(null);
+	}
+
+	private void removeEntriesNotIn(List<MyFitEntry> requestedEntries) {
+		Set<FitCategory> requestedCategories = new HashSet<>();
+		for (MyFitEntry entry : requestedEntries) {
+			requestedCategories.add(entry.getCategory());
+		}
+
+		entries.removeIf(entry -> !requestedCategories.contains(entry.getCategory()));
 	}
 
 	@PrePersist

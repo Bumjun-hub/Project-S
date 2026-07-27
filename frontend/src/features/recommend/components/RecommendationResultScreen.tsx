@@ -7,6 +7,7 @@ import { GlassStateBlock } from "@/components/common/GlassStateBlock";
 import { StepPageShell } from "@/components/layout/StepPageShell";
 import { useAnalysisHistoryStore } from "@/features/history/store";
 import { useUserProfileStore } from "@/features/profile/store";
+import type { MeasurementComparison } from "@/features/recommend/types";
 import styles from "./RecommendationResultScreen.module.css";
 
 function insightLabel(text: string) {
@@ -29,7 +30,7 @@ function aggregateFitScore(insights: string[]) {
   return Math.round(sum / insights.length);
 }
 
-function confidencePercent(createdAt: string, productId: string) {
+function fallbackMatchScore(createdAt: string, productId: string) {
   const seed = (createdAt.length + productId.length * 5) % 19;
   return 71 + seed;
 }
@@ -53,6 +54,14 @@ function cautionBullets(summary: string): string[] {
     bullets.push("실제 착용은 매장 피팅 또는 반품 정책과 함께 검토하는 것이 안전합니다.");
   }
   return bullets;
+}
+
+function formatCm(value: number) {
+  return `${value > 0 ? "+" : ""}${value.toFixed(1)}cm`;
+}
+
+function comparisonProgress(comparison: MeasurementComparison) {
+  return Math.max(8, Math.min(100, Math.round(100 - comparison.absoluteDifferenceCm * 18)));
 }
 
 export default function RecommendationResultScreen() {
@@ -105,16 +114,19 @@ export default function RecommendationResultScreen() {
   }
 
   const fitScore = aggregateFitScore(lastResult.fitInsights);
-  const confidence = confidencePercent(lastResult.createdAt, lastResult.productId);
+  const matchScore = lastResult.matchScore ?? fallbackMatchScore(lastResult.createdAt, lastResult.productId);
+  const sizeScoreLabel =
+    lastResult.sizeScore != null ? `${lastResult.sizeScore.toFixed(2)}cm` : `${fitScore}`;
   const fitLabel = estimateFitLabel(lastResult.summary);
   const cautions = cautionBullets(lastResult.summary);
+  const comparisons = lastResult.comparisons ?? [];
 
   return (
     <StepPageShell
       step={7}
       label="추천 결과"
-      title="AI 사이즈 리포트"
-      description="입력한 체형·실측·상품 사이즈표를 바탕으로 한 요약 리포트입니다."
+      title="맞춤 사이즈 추천"
+      description="기준 옷의 착용감과 상품 실측표를 바탕으로 한 비교 리포트입니다."
       maxWidth={960}
       panelClassName="result-panel-shell"
     >
@@ -139,14 +151,14 @@ export default function RecommendationResultScreen() {
               <p className={styles.metricSub}>요약 문맥 기반 추정</p>
             </article>
             <article className={styles.metricCard}>
-              <span className={styles.metricLabel}>AI Fit Score</span>
-              <p className={styles.metricValue}>{fitScore}</p>
-              <p className={styles.metricSub}>부위별 일치도 시뮬레이션</p>
+              <span className={styles.metricLabel}>매칭 점수</span>
+              <p className={styles.metricValue}>{matchScore}%</p>
+              <p className={styles.metricSub}>백엔드 실측 비교 결과</p>
             </article>
             <article className={styles.metricCard}>
-              <span className={styles.metricLabel}>추천 신뢰도</span>
-              <p className={styles.metricValue}>{confidence}%</p>
-              <p className={styles.metricSub}>입력 완성도·데이터 범위 반영</p>
+              <span className={styles.metricLabel}>평균 오차</span>
+              <p className={styles.metricValue}>{sizeScoreLabel}</p>
+              <p className={styles.metricSub}>낮을수록 기준에 가깝습니다</p>
             </article>
           </div>
         </header>
@@ -157,7 +169,7 @@ export default function RecommendationResultScreen() {
           </h3>
           <div className={styles.reportCard}>
             <p className={styles.reportLead}>
-              AI 모델 기준 추천 사이즈는 <strong>{lastResult.recommendedSize}</strong>이며, {fitLabel}으로 맞을 가능성이 높습니다.
+              실측 비교 기준 추천 사이즈는 <strong>{lastResult.recommendedSize}</strong>이며, {fitLabel}으로 맞을 가능성이 높습니다.
             </p>
             <ul className={styles.reportList}>
               {reasonItems.map((item) => (
@@ -186,9 +198,33 @@ export default function RecommendationResultScreen() {
             부위별 비교
           </h3>
           <div className={styles.comparisonBlock}>
-            {lastResult.fitInsights.map((insight, idx) => {
-              const score = insightScore(insight, idx);
-              return (
+            {comparisons.length > 0
+              ? comparisons.map((comparison) => {
+                const score = comparisonProgress(comparison);
+                return (
+                  <div key={comparison.area} className={styles.comparisonRow}>
+                    <span className={styles.comparisonPill}>{comparison.areaLabel}</span>
+                    <p className={styles.comparisonText}>
+                      기준 {comparison.myFitSizeCm.toFixed(1)}cm · 목표 {comparison.targetSizeCm.toFixed(1)}cm · 상품{" "}
+                      {comparison.productSizeCm.toFixed(1)}cm ({formatCm(comparison.differenceCm)})
+                      <br />
+                      {comparison.message}
+                    </p>
+                    <div
+                      className={styles.comparisonTrack}
+                      role="progressbar"
+                      aria-valuenow={score}
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                    >
+                      <div className={styles.comparisonFill} style={{ width: `${score}%` }} />
+                    </div>
+                  </div>
+                );
+              })
+              : lastResult.fitInsights.map((insight, idx) => {
+                const score = insightScore(insight, idx);
+                return (
                 <div key={`${idx}-${insight.slice(0, 24)}`} className={styles.comparisonRow}>
                   <span className={styles.comparisonPill}>{insightLabel(insight)}</span>
                   <p className={styles.comparisonText}>{insight}</p>
@@ -202,8 +238,8 @@ export default function RecommendationResultScreen() {
                     <div className={styles.comparisonFill} style={{ width: `${score}%` }} />
                   </div>
                 </div>
-              );
-            })}
+                );
+              })}
           </div>
         </section>
       </div>

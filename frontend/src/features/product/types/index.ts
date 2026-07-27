@@ -35,5 +35,3 @@ export type Product = {
   createdAt: string;
   updatedAt: string;
 };
-
-export type MockProduct = Product;

@@ -64,6 +64,11 @@ public class MyFitMeasurement {
 		this.entry = entry;
 	}
 
+	public void update(BigDecimal sizeCm, FitFeeling feeling) {
+		this.sizeCm = sizeCm;
+		this.feeling = feeling;
+	}
+
 	public Long getId() {
 		return id;
 	}

@@ -147,6 +147,46 @@ class MyFitIntegrationTest {
 	}
 
 	@Test
+	void update_my_fit_same_category_repeatedly_success() throws Exception {
+		String accessToken = signupAndLogin();
+		createMyFit(accessToken).andExpect(status().isCreated());
+		MyFit myFit = findSavedMyFit();
+		Long originalEntryId = findSavedEntryId(myFit.getId());
+
+		mockMvc.perform(patch(MY_FIT_ME_URL)
+				.header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(sameCategoryUpdateMyFitRequestJson("updated oxford", 51.00, 69.00)))
+			.andExpect(status().isOk())
+			.andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+			.andExpect(jsonPath("$.success").value(true))
+			.andExpect(jsonPath("$.message").value(UPDATE_SUCCESS_MESSAGE))
+			.andExpect(jsonPath("$.data.entries[0].category").value("TOP"))
+			.andExpect(jsonPath("$.data.entries[0].garmentLabel").value("updated oxford"))
+			.andExpect(jsonPath("$.data.entries[0].measurements[*].area",
+				containsInAnyOrder("TOTAL_LENGTH", "CHEST_WIDTH")));
+
+		mockMvc.perform(patch(MY_FIT_ME_URL)
+				.header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(sameCategoryUpdateMyFitRequestJson("updated oxford second", 53.00, 71.00)))
+			.andExpect(status().isOk())
+			.andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+			.andExpect(jsonPath("$.success").value(true))
+			.andExpect(jsonPath("$.message").value(UPDATE_SUCCESS_MESSAGE))
+			.andExpect(jsonPath("$.data.entries[0].category").value("TOP"))
+			.andExpect(jsonPath("$.data.entries[0].garmentLabel").value("updated oxford second"))
+			.andExpect(jsonPath("$.data.entries[0].measurements[*].area",
+				containsInAnyOrder("TOTAL_LENGTH", "CHEST_WIDTH")));
+
+		Long updatedEntryId = findSavedEntryId(myFit.getId());
+		assertThat(updatedEntryId).isEqualTo(originalEntryId);
+		assertThat(findSavedCategories(myFit.getId())).containsExactly("\uC0C1\uC758");
+		assertThat(findSavedAreas(updatedEntryId)).containsExactlyInAnyOrder("\uCD1D\uC7A5", "\uAC00\uC2B4\uB2E8\uBA74");
+		assertThat(findSavedFeelings(updatedEntryId)).containsExactlyInAnyOrder("\uB531\uB9DE\uC74C", "\uC791\uC558\uC74C");
+	}
+
+	@Test
 	void create_my_fit_fail_when_already_exists() throws Exception {
 		String accessToken = signupAndLogin();
 		createMyFit(accessToken).andExpect(status().isCreated());
@@ -302,6 +342,20 @@ class MyFitIntegrationTest {
 				"garmentLabel", "straight denim",
 				"measurements", List.of(
 					Map.of("area", "WAIST_WIDTH", "sizeCm", 40.00, "feeling", "SMALL")
+				)
+			))
+		));
+	}
+
+	private String sameCategoryUpdateMyFitRequestJson(String garmentLabel, double chestWidth, double totalLength)
+		throws Exception {
+		return objectMapper.writeValueAsString(Map.of(
+			"entries", List.of(Map.of(
+				"category", "TOP",
+				"garmentLabel", garmentLabel,
+				"measurements", List.of(
+					Map.of("area", "TOTAL_LENGTH", "sizeCm", totalLength, "feeling", "EXACT"),
+					Map.of("area", "CHEST_WIDTH", "sizeCm", chestWidth, "feeling", "SMALL")
 				)
 			))
 		));

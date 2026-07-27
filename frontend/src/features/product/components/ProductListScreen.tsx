@@ -1,6 +1,7 @@
 // 이 파일은 상품 목록 화면과 로딩/빈 상태 처리를 정의합니다.
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { EmptyState } from "@/components/common/EmptyState";
@@ -10,6 +11,7 @@ import { Input } from "@/components/common/Input";
 import { Skeleton } from "@/components/common/Skeleton";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { useProductsQuery } from "@/features/product/api/use-products-query";
+import { getProductImageSrc } from "@/features/product/lib/product-image";
 import type { Product } from "@/features/product/types";
 import styles from "./ProductListScreen.module.css";
 
@@ -125,9 +127,13 @@ export default function ProductListScreen() {
             {filtered.map((p) => (
               <li key={p.id} className={styles.card}>
                 <div className={styles.cardImageWrap}>
-                  <div className={styles.imagePlaceholder} aria-hidden>
-                    <span className={styles.imageTag}>Look</span>
-                  </div>
+                  <Image
+                    src={getProductImageSrc(p.id)}
+                    alt={p.name}
+                    fill
+                    className={styles.productImage}
+                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                  />
                 </div>
                 <div className={styles.cardBody}>
                   <p className={styles.cardMeta}>

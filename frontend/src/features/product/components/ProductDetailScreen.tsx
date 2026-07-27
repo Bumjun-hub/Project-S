@@ -1,9 +1,11 @@
 // 이 파일은 상품 상세 화면과 추천 시작 동선을 정의합니다.
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { FlowStepCaption } from "@/components/common/FlowStepCaption";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { fetchProductById } from "@/features/product/api/products-api";
+import { getProductImageSrc } from "@/features/product/lib/product-image";
 import type { ProductMeasurementArea } from "@/features/product/types";
 import styles from "./ProductDetailScreen.module.css";
 
@@ -33,9 +35,14 @@ export default async function ProductDetailScreen({ productId }: { productId: st
       <div className={styles.page}>
         <section className={styles.hero} aria-label="상품 요약">
           <div className={styles.heroVisual}>
-            <div className={styles.imagePlaceholder} aria-hidden>
-              <span className={styles.imageTag}>Product</span>
-            </div>
+            <Image
+              src={getProductImageSrc(product.id)}
+              alt={product.name}
+              fill
+              className={styles.productImage}
+              sizes="(max-width: 768px) 100vw, 300px"
+              priority
+            />
           </div>
           <div className={styles.heroContent}>
             <div className={styles.badgeRow}>
@@ -88,12 +95,12 @@ export default async function ProductDetailScreen({ productId }: { productId: st
 
         <section className={styles.aiSection} aria-labelledby="ai-points-heading">
           <h2 id="ai-points-heading" className={styles.aiTitle}>
-            AI 분석 포인트
+            실측 비교 포인트
           </h2>
           <ul className={styles.aiList}>
             <li>이 상품은 입력한 프로필과 기준 옷 실측을 기반으로 분석됩니다.</li>
             <li>브랜드 실측 사이즈표와 기준 옷 착용감을 비교합니다.</li>
-            <li>분석 결과는 현재 mock AI 리포트로 저장됩니다.</li>
+            <li>분석 결과는 실측 비교 리포트로 저장됩니다.</li>
           </ul>
         </section>
 

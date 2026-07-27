@@ -8,7 +8,7 @@ import { AppProviders } from "./providers";
 
 export const metadata: Metadata = {
   title: "Project S",
-  description: "AI 의류 사이즈 추천",
+  description: "실측 기반 의류 사이즈 추천",
 };
 
 export default function RootLayout({

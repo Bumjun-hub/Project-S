@@ -113,7 +113,7 @@ export default function HistoryScreen() {
                   예상 핏 {estimateFitFromSummary(h.summary)}
                 </p>
                 <div className={styles.badgeRow}>
-                  <span className={styles.badgeFit}>AI FIT</span>
+                  <span className={styles.badgeFit}>MATCH {h.matchScore != null ? `${h.matchScore}%` : "READY"}</span>
                 </div>
                 <div className={styles.actions}>
                   <button

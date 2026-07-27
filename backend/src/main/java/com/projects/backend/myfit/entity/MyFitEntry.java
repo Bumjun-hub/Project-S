@@ -2,7 +2,9 @@ package com.projects.backend.myfit.entity;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -71,20 +73,49 @@ public class MyFitEntry {
 		this.myFit = myFit;
 	}
 
+	public void update(String garmentLabel, List<MyFitMeasurement> measurements) {
+		this.garmentLabel = garmentLabel;
+		updateMeasurements(measurements);
+	}
+
 	public void updateMeasurements(List<MyFitMeasurement> measurements) {
-		this.measurements.clear();
 		if (measurements == null) {
+			this.measurements.clear();
 			return;
 		}
 
 		for (MyFitMeasurement measurement : measurements) {
-			addMeasurement(measurement);
+			MyFitMeasurement existingMeasurement = findMeasurementByArea(measurement.getArea());
+			if (existingMeasurement == null) {
+				addMeasurement(measurement);
+				continue;
+			}
+
+			existingMeasurement.update(measurement.getSizeCm(), measurement.getFeeling());
 		}
+
+		removeMeasurementsNotIn(measurements);
 	}
 
 	private void addMeasurement(MyFitMeasurement measurement) {
 		measurement.assignEntry(this);
 		this.measurements.add(measurement);
+	}
+
+	private MyFitMeasurement findMeasurementByArea(MeasurementArea area) {
+		return measurements.stream()
+			.filter(measurement -> measurement.getArea() == area)
+			.findFirst()
+			.orElse(null);
+	}
+
+	private void removeMeasurementsNotIn(List<MyFitMeasurement> requestedMeasurements) {
+		Set<MeasurementArea> requestedAreas = new HashSet<>();
+		for (MyFitMeasurement measurement : requestedMeasurements) {
+			requestedAreas.add(measurement.getArea());
+		}
+
+		measurements.removeIf(measurement -> !requestedAreas.contains(measurement.getArea()));
 	}
 
 	public Long getId() {

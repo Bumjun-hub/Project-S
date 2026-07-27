@@ -13,7 +13,7 @@ const barLines = [
   { metric: "품", diff: "약간 여유", width: "68%" },
 ] as const;
 
-const flowSteps = ["프로필 입력", "기준 옷 등록", "상품 선택", "AI 분석", "결과 확인"] as const;
+const flowSteps = ["프로필 입력", "기준 옷 등록", "상품 선택", "실측 비교", "결과 확인"] as const;
 
 const inputFields = [
   { label: "키", value: "172cm" },
@@ -233,7 +233,7 @@ export function LandingTimelineDetails() {
             scatter={{ x: -14, y: 11 }}
             drift={3}
           >
-            <p className={styles.microTooltipText}>AI detected relaxed shoulder fit</p>
+            <p className={styles.microTooltipText}>Shoulder fit adjusted from your reference</p>
           </AmbientFloatPiece>
 
           <AmbientFloatPiece
@@ -266,7 +266,7 @@ export function LandingTimelineDetails() {
             scatter={{ x: 20, y: 12 }}
             drift={4}
           >
-            AI Recommended
+            Size Matched
           </AmbientFloatPiece>
           <AmbientFloatPiece
             className={`${styles.microPill} ${styles.statusBadgeB} ${styles.depthStrong}`}
@@ -409,7 +409,7 @@ export function LandingTimelineDetails() {
                 idleKind="result"
                 scatter={{ x: -28, y: 4 }}
               >
-                <span className={styles.sectionEyebrowMuted}>AI RESULT SHOWCASE</span>
+                <span className={styles.sectionEyebrowMuted}>FIT RESULT SHOWCASE</span>
                 <div className={styles.resultHeader}>
                   <div>
                     <h3 className={styles.resultTitle}>
@@ -417,7 +417,7 @@ export function LandingTimelineDetails() {
                     </h3>
                     <p className={styles.resultSub}>예상 핏: 세미 오버핏</p>
                   </div>
-                  <span className={styles.badge}>AI Fit Analysis</span>
+                  <span className={styles.badge}>Fit Measurement</span>
                 </div>
 
                 <p className={styles.compareTitle}>실측 비교</p>
@@ -469,7 +469,7 @@ export function LandingTimelineDetails() {
       </section>
 
       <footer className={styles.footerNote}>
-        <span>추천은 입력한 실측과 mock 상품 사이즈표를 기준으로 한 참고 결과입니다.</span>
+        <span>추천은 입력한 실측과 상품 사이즈표를 기준으로 한 참고 결과입니다.</span>
         <span>
           <Link href="/privacy">개인정보</Link> · <Link href="/terms">이용약관</Link>
         </span>
