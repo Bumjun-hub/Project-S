@@ -116,7 +116,7 @@ Match Score와 부위별 비교 결과 생성
 
 ## REST API
 
-모든 API 응답은 `ApiResponse<T>` 형태로 성공 여부, 메시지, 데이터를 일관되게 제공합니다.
+성공 응답은 `ApiResponse<T>`, 실패 응답은 `ErrorResponse`로 통일해 일관된 응답 계약을 제공합니다.
 
 | Method | Endpoint | 설명 | 인증 |
 | --- | --- | --- | --- |
