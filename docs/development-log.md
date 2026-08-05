@@ -45,7 +45,7 @@ Frontend 기능을 Backend 도메인과 같은 경계로 나누어 API, 타입, 
 - API 기본 주소를 `http://localhost:8080`에서 동일 출처 경로로 변경
 - Apache가 `/api` 요청을 Spring Boot에 전달할 수 있는 Frontend 호출 방식 준비
 
-> 이 변경은 현재 작업 트리에 있으며 아직 커밋되지 않은 상태입니다.
+> 이 변경은 `a0c26d9` 커밋에 반영했습니다.
 
 ## Backend
 
