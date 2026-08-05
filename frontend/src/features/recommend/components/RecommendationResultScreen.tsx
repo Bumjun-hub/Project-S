@@ -1,6 +1,6 @@
-// 이 파일은 마지막 추천 결과 화면의 UI와 기록 연동을 담당합니다.
 "use client";
 
+import { AlertTriangle, Check, ChevronDown, Ruler } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { FlowFooterNav } from "@/components/common/FlowFooterNav";
 import { GlassStateBlock } from "@/components/common/GlassStateBlock";
@@ -10,52 +10,6 @@ import { useUserProfileStore } from "@/features/profile/store";
 import type { MeasurementComparison } from "@/features/recommend/types";
 import styles from "./RecommendationResultScreen.module.css";
 
-function insightLabel(text: string) {
-  const stripTopicTail = (s: string) => s.replace(/은$|는$/, "");
-  const byColon = text.split(":")[0]?.trim();
-  if (byColon && byColon.length <= 14) return stripTopicTail(byColon) || byColon;
-  const first = text.split(" ")[0]?.trim() ?? "";
-  const cleaned = stripTopicTail(first);
-  return cleaned.length > 0 && cleaned.length <= 14 ? cleaned : "부위";
-}
-
-function insightScore(text: string, idx: number) {
-  const seed = text.length + idx * 7;
-  return 72 + (seed % 23);
-}
-
-function aggregateFitScore(insights: string[]) {
-  if (insights.length === 0) return 81;
-  const sum = insights.reduce((acc, t, i) => acc + insightScore(t, i), 0);
-  return Math.round(sum / insights.length);
-}
-
-function fallbackMatchScore(createdAt: string, productId: string) {
-  const seed = (createdAt.length + productId.length * 5) % 19;
-  return 71 + seed;
-}
-
-function estimateFitLabel(summary: string) {
-  if (summary.includes("오버")) return "오버핏";
-  if (summary.includes("레귤러")) return "레귤러핏";
-  if (summary.includes("슬림")) return "슬림핏";
-  return "세미 오버핏";
-}
-
-function cautionBullets(summary: string): string[] {
-  const bullets = [
-    "실측·사이즈표는 브랜드·시즌마다 오차가 날 수 있습니다.",
-    "소재·세탁·패턴에 따라 착용감이 달라질 수 있습니다.",
-  ];
-  if (summary.includes("구간 밖") || summary.includes("근사")) {
-    bullets.push("차트 구간 밖에서는 근사 매칭이 포함될 수 있습니다.");
-  }
-  if (summary.includes("실제")) {
-    bullets.push("실제 착용은 매장 피팅 또는 반품 정책과 함께 검토하는 것이 안전합니다.");
-  }
-  return bullets;
-}
-
 function formatCm(value: number) {
   return `${value > 0 ? "+" : ""}${value.toFixed(1)}cm`;
 }
@@ -64,194 +18,101 @@ function comparisonProgress(comparison: MeasurementComparison) {
   return Math.max(8, Math.min(100, Math.round(100 - comparison.absoluteDifferenceCm * 18)));
 }
 
-export default function RecommendationResultScreen() {
-  const lastResult = useAnalysisHistoryStore((s) => s.lastResult);
-  const bodyShapeTags = useUserProfileStore((s) => s.profile.bodyShapeTags ?? []);
-  const [ready, setReady] = useState(false);
+function fitLabel(summary: string) {
+  if (summary.includes("오버")) return "세미 오버핏";
+  if (summary.includes("슬림")) return "슬림핏";
+  if (summary.includes("정사이즈")) return "정사이즈";
+  return "편안한 핏";
+}
 
-  useEffect(() => {
-    setReady(true);
-  }, []);
+export default function RecommendationResultScreen() {
+  const lastResult = useAnalysisHistoryStore((state) => state.lastResult);
+  const bodyShapeTags = useUserProfileStore((state) => state.profile.bodyShapeTags ?? []);
+  const [ready, setReady] = useState(false);
+  const [openArea, setOpenArea] = useState<string | null>(null);
+
+  useEffect(() => setReady(true), []);
 
   const reasonItems = useMemo(() => {
     if (!lastResult) return [];
-    const items = [
-      "내 기준 옷 실측과 상품 사이즈표를 부위별로 비교해, 가장 비슷한 사이즈를 찾았습니다.",
-      "입력한 착용감(작았음/딱맞음/컸음)을 반영해 한 사이즈 위/아래 또는 유지로 보정했습니다.",
+    return [
+      "기준 옷의 착용감과 상품 실측을 부위별로 비교했어요.",
+      bodyShapeTags.length ? `선택한 체형 특징을 함께 반영했어요: ${bodyShapeTags.join(" · ")}` : "평소 선호하는 착용감을 함께 반영했어요.",
     ];
-    if (bodyShapeTags.length > 0) {
-      items.push(`선택한 체형 특징도 참고했습니다: ${bodyShapeTags.join(" · ")}`);
-    }
-    return items;
-  }, [lastResult, bodyShapeTags]);
+  }, [bodyShapeTags, lastResult]);
 
   if (!ready) {
-    return (
-      <StepPageShell
-        step={7}
-        label="추천 결과"
-        title="추천 결과"
-        maxWidth={960}
-        panelClassName="result-panel-shell"
-      >
-        <p style={{ color: "var(--muted)" }}>불러오는 중…</p>
-      </StepPageShell>
-    );
+    return <StepPageShell step={7} label="추천 결과" title="추천 결과" maxWidth={960} panelClassName="result-panel-shell"><p>불러오는 중이에요.</p></StepPageShell>;
   }
 
   if (!lastResult) {
     return (
-      <StepPageShell step={7} label="추천 결과" title="아직 결과가 없습니다" maxWidth={960} panelClassName="result-panel-shell">
-        <GlassStateBlock
-          className="result-measure-card"
-          title="추천 결과를 찾지 못했습니다."
-          description="상품 상세에서 사이즈 분석을 실행하면 여기에 표시됩니다."
-        >
+      <StepPageShell step={7} label="추천 결과" title="아직 결과가 없어요" maxWidth={960} panelClassName="result-panel-shell">
+        <GlassStateBlock className="result-measure-card" title="추천 결과를 찾지 못했어요" description="상품 상세에서 사이즈 분석을 실행하면 여기에 표시됩니다.">
           <FlowFooterNav items={[{ href: "/products", label: "상품 목록" }]} />
         </GlassStateBlock>
       </StepPageShell>
     );
   }
 
-  const fitScore = aggregateFitScore(lastResult.fitInsights);
-  const matchScore = lastResult.matchScore ?? fallbackMatchScore(lastResult.createdAt, lastResult.productId);
-  const sizeScoreLabel =
-    lastResult.sizeScore != null ? `${lastResult.sizeScore.toFixed(2)}cm` : `${fitScore}`;
-  const fitLabel = estimateFitLabel(lastResult.summary);
-  const cautions = cautionBullets(lastResult.summary);
+  const matchScore = lastResult.matchScore ?? 0;
+  const isLowConfidence = matchScore < 50;
+  const label = fitLabel(lastResult.summary);
   const comparisons = lastResult.comparisons ?? [];
 
   return (
-    <StepPageShell
-      step={7}
-      label="추천 결과"
-      title="맞춤 사이즈 추천"
-      description="기준 옷의 착용감과 상품 실측표를 바탕으로 한 비교 리포트입니다."
-      maxWidth={960}
-      panelClassName="result-panel-shell"
-    >
+    <StepPageShell step={7} label="추천 결과" title="맞춤 사이즈 추천" description="기준 옷의 착용감과 상품 실측을 비교한 결과예요." maxWidth={960} panelClassName="result-panel-shell">
       <div className={styles.pageContent}>
-        <header className={styles.hero}>
-          <div className={styles.heroTop}>
-            <p className={styles.heroMeta}>{new Date(lastResult.createdAt).toLocaleString("ko-KR")}</p>
-            <h2 className={styles.heroProduct}>
-              {lastResult.brand} · {lastResult.productName}
-            </h2>
+        <section className={styles.recommendationHero} aria-labelledby="recommended-size-heading">
+          <div className={styles.productMeta}>
+            <p>{new Date(lastResult.createdAt).toLocaleString("ko-KR")}</p>
+            <h2>{lastResult.brand} · {lastResult.productName}</h2>
           </div>
-
-          <div className={styles.metricsGrid}>
-            <article className={styles.metricCard}>
-              <span className={styles.metricLabel}>추천 사이즈</span>
-              <p className={styles.metricValue}>{lastResult.recommendedSize}</p>
-              <p className={styles.metricSub}>브랜드 라벨 기준</p>
-            </article>
-            <article className={styles.metricCard}>
-              <span className={styles.metricLabel}>예상 핏</span>
-              <p className={styles.metricValue}>{fitLabel}</p>
-              <p className={styles.metricSub}>요약 문맥 기반 추정</p>
-            </article>
-            <article className={styles.metricCard}>
-              <span className={styles.metricLabel}>매칭 점수</span>
-              <p className={styles.metricValue}>{matchScore}%</p>
-              <p className={styles.metricSub}>백엔드 실측 비교 결과</p>
-            </article>
-            <article className={styles.metricCard}>
-              <span className={styles.metricLabel}>평균 오차</span>
-              <p className={styles.metricValue}>{sizeScoreLabel}</p>
-              <p className={styles.metricSub}>낮을수록 기준에 가깝습니다</p>
-            </article>
+          <div className={styles.resultSummary}>
+            <div><span>추천 사이즈</span><strong id="recommended-size-heading">{lastResult.recommendedSize}</strong></div>
+            <div className={styles.fitCopy}><b>{label}</b><p>내 기준 옷과 비교한 결과예요.</p></div>
+            <div className={styles.scoreBadge}><span>일치도</span><b>{matchScore}%</b></div>
           </div>
-        </header>
+          <div className={styles.scoreTrack}><i style={{ width: `${matchScore}%` }} /></div>
+        </section>
 
-        <section className={styles.reportSection} aria-labelledby="result-reason-heading">
-          <h3 id="result-reason-heading" className={styles.reportTitle}>
-            추천 이유
-          </h3>
-          <div className={styles.reportCard}>
-            <p className={styles.reportLead}>
-              실측 비교 기준 추천 사이즈는 <strong>{lastResult.recommendedSize}</strong>이며, {fitLabel}으로 맞을 가능성이 높습니다.
-            </p>
-            <ul className={styles.reportList}>
-              {reasonItems.map((item) => (
-                <li key={item}>{item}</li>
-              ))}
-            </ul>
-            <p className={styles.reportBody}>{lastResult.summary}</p>
+        {isLowConfidence ? (
+          <section className={styles.cautionBanner} aria-label="추천 정확도 안내">
+            <AlertTriangle size={20} /><div><b>추천 정확도가 낮아요.</b><p>현재 상품은 기준 옷과 차이가 커요. 아래 부위별 비교를 확인하거나 다른 상품도 비교해 보세요.</p></div>
+          </section>
+        ) : null}
+
+        <section className={styles.reportSection} aria-labelledby="reason-heading">
+          <h3 id="reason-heading">추천 근거</h3>
+          <div className={styles.reasonCard}>
+            <p className={styles.reasonLead}><strong>{lastResult.recommendedSize}</strong> 사이즈가 현재 기준에서 가장 가까운 선택이에요.</p>
+            <ul>{reasonItems.map((item) => <li key={item}><Check size={15} />{item}</li>)}</ul>
+            <p className={styles.summary}>{lastResult.summary}</p>
           </div>
         </section>
 
-        <section className={styles.reportSection} aria-labelledby="result-caution-heading">
-          <h3 id="result-caution-heading" className={styles.reportTitle}>
-            주의할 점
-          </h3>
-          <div className={styles.reportCard}>
-            <ul className={styles.reportList}>
-              {cautions.map((c) => (
-                <li key={c}>{c}</li>
-              ))}
-            </ul>
-          </div>
-        </section>
-
-        <section className={styles.reportSection} aria-labelledby="result-compare-heading">
-          <h3 id="result-compare-heading" className={styles.reportTitle}>
-            부위별 비교
-          </h3>
-          <div className={styles.comparisonBlock}>
-            {comparisons.length > 0
-              ? comparisons.map((comparison) => {
-                const score = comparisonProgress(comparison);
-                return (
-                  <div key={comparison.area} className={styles.comparisonRow}>
-                    <span className={styles.comparisonPill}>{comparison.areaLabel}</span>
-                    <p className={styles.comparisonText}>
-                      기준 {comparison.myFitSizeCm.toFixed(1)}cm · 목표 {comparison.targetSizeCm.toFixed(1)}cm · 상품{" "}
-                      {comparison.productSizeCm.toFixed(1)}cm ({formatCm(comparison.differenceCm)})
-                      <br />
-                      {comparison.message}
-                    </p>
-                    <div
-                      className={styles.comparisonTrack}
-                      role="progressbar"
-                      aria-valuenow={score}
-                      aria-valuemin={0}
-                      aria-valuemax={100}
-                    >
-                      <div className={styles.comparisonFill} style={{ width: `${score}%` }} />
-                    </div>
-                  </div>
-                );
-              })
-              : lastResult.fitInsights.map((insight, idx) => {
-                const score = insightScore(insight, idx);
-                return (
-                <div key={`${idx}-${insight.slice(0, 24)}`} className={styles.comparisonRow}>
-                  <span className={styles.comparisonPill}>{insightLabel(insight)}</span>
-                  <p className={styles.comparisonText}>{insight}</p>
-                  <div
-                    className={styles.comparisonTrack}
-                    role="progressbar"
-                    aria-valuenow={score}
-                    aria-valuemin={0}
-                    aria-valuemax={100}
-                  >
-                    <div className={styles.comparisonFill} style={{ width: `${score}%` }} />
-                  </div>
-                </div>
-                );
-              })}
+        <section className={styles.reportSection} aria-labelledby="comparison-heading">
+          <div className={styles.sectionHeading}><div><h3 id="comparison-heading">부위별 비교</h3><p>항목을 누르면 상세 수치와 설명을 볼 수 있어요.</p></div><Ruler size={20} /></div>
+          <div className={styles.comparisonList}>
+            {comparisons.map((comparison) => {
+              const isOpen = openArea === comparison.area;
+              const score = comparisonProgress(comparison);
+              return (
+                <article key={comparison.area} className={styles.comparisonItem}>
+                  <button type="button" onClick={() => setOpenArea(isOpen ? null : comparison.area)} aria-expanded={isOpen}>
+                    <span className={styles.areaName}>{comparison.areaLabel}</span>
+                    <span className={styles.areaResult}>{formatCm(comparison.differenceCm)}</span>
+                    <span className={styles.areaStatus}>{comparison.absoluteDifferenceCm <= 3 ? "적당함" : comparison.differenceCm < 0 ? "작음" : "큼"}</span>
+                    <ChevronDown className={isOpen ? styles.chevronOpen : undefined} size={18} />
+                  </button>
+                  {isOpen ? <div className={styles.comparisonDetails}><p>기준 {comparison.myFitSizeCm.toFixed(1)}cm · 목표 {comparison.targetSizeCm.toFixed(1)}cm · 상품 {comparison.productSizeCm.toFixed(1)}cm</p><p>{comparison.message}</p><div><i style={{ width: `${score}%` }} /></div></div> : null}
+                </article>
+              );
+            })}
           </div>
         </section>
       </div>
-
-      <FlowFooterNav
-        items={[
-          { href: `/recommend/${lastResult.productId}`, label: "같은 상품 다시 분석", variant: "primary" },
-          { href: "/products", label: "다른 상품" },
-          { href: "/history", label: "최근 기록" },
-          { href: "/", label: "홈" },
-        ]}
-      />
+      <FlowFooterNav items={[{ href: `/recommend/${lastResult.productId}`, label: "같은 상품 다시 분석", variant: "primary" }, { href: "/products", label: "다른 상품 고르기" }, { href: "/history", label: "최근 기록" }]} />
     </StepPageShell>
   );
 }

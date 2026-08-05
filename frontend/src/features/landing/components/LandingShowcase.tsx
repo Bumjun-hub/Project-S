@@ -1,11 +1,11 @@
 "use client";
 
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useInView, useMotionValueEvent, useScroll } from "framer-motion";
 import { ArrowRight, BrainCircuit, GitCompareArrows, ShieldCheck, Sparkles, Timer } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { type FormEvent, useMemo, useState } from "react";
+import { type FormEvent, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/common/Button";
 import { Input } from "@/components/common/Input";
 import { useAnalysisHistoryStore } from "@/features/history/store";
@@ -14,12 +14,50 @@ import { getProductImageSrc } from "@/features/product/lib/product-image";
 import { useUserProfileStore } from "@/features/profile/store";
 import styles from "./LandingShowcase.module.css";
 
-const reveal = {
-  initial: { opacity: 0, y: 22 },
-  whileInView: { opacity: 1, y: 0 },
-  viewport: { once: true, amount: 0.18 },
-  transition: { duration: 0.45 },
+const revealVariants = {
+  hidden: { opacity: 0, y: 28 },
+  visible: { opacity: 1, y: 0 },
 };
+
+type ScrollRevealSectionProps = {
+  children: ReactNode;
+  className?: string;
+  "aria-labelledby"?: string;
+};
+
+function ScrollRevealSection({ children, ...props }: ScrollRevealSectionProps) {
+  const ref = useRef<HTMLElement>(null);
+  const isInView = useInView(ref, { amount: 0.45 });
+  const [isVisible, setIsVisible] = useState(false);
+  const scrollDirection = useRef<"up" | "down">("down");
+  const { scrollY } = useScroll();
+
+  useMotionValueEvent(scrollY, "change", (current) => {
+    const previous = scrollY.getPrevious();
+    if (previous !== undefined && current !== previous) scrollDirection.current = current > previous ? "down" : "up";
+  });
+
+  useEffect(() => {
+    if (isInView) {
+      setIsVisible(true);
+    } else if (scrollDirection.current === "up") {
+      setIsVisible(false);
+    }
+  }, [isInView]);
+
+  return (
+    <motion.section
+      ref={ref}
+      {...props}
+      initial="hidden"
+      animate={isVisible ? "visible" : "hidden"}
+      variants={revealVariants}
+      transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+    >
+      {children}
+    </motion.section>
+  );
+}
 
 const features = [
   { icon: BrainCircuit, title: "실측 기반 추천", text: "입력한 체형과 상품 실측을 함께 비교합니다." },
@@ -60,7 +98,7 @@ export function LandingShowcase() {
 
   return (
     <div className={styles.showcase}>
-      <motion.section {...reveal} className={styles.section} aria-labelledby="demo-title">
+      <ScrollRevealSection className={styles.section} aria-labelledby="demo-title">
         <div className={styles.heading}>
           <p>RECOMMENDATION</p>
           <h2 id="demo-title">내 사이즈를 바로 확인해보세요.</h2>
@@ -168,9 +206,9 @@ export function LandingShowcase() {
             </AnimatePresence>
           </div>
         </div>
-      </motion.section>
+      </ScrollRevealSection>
 
-      <motion.section {...reveal} className={styles.section} aria-labelledby="popular-title">
+      <ScrollRevealSection className={styles.section} aria-labelledby="popular-title">
         <div className={styles.headingRow}>
           <div className={styles.heading}>
             <p>POPULAR PRODUCTS</p>
@@ -206,9 +244,9 @@ export function LandingShowcase() {
             </motion.article>
           ))}
         </div>
-      </motion.section>
+      </ScrollRevealSection>
 
-      <motion.section {...reveal} className={styles.section} aria-labelledby="why-title">
+      <ScrollRevealSection className={styles.section} aria-labelledby="why-title">
         <div className={styles.heading}>
           <p>WHY PROJECT S</p>
           <h2 id="why-title">더 확신 있는 사이즈 선택</h2>
@@ -231,7 +269,7 @@ export function LandingShowcase() {
             );
           })}
         </div>
-      </motion.section>
+      </ScrollRevealSection>
     </div>
   );
 }
