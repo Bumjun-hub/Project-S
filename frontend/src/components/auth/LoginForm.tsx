@@ -4,6 +4,8 @@ import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { type FormEvent, useState } from "react";
 import { login, LoginApiError } from "@/features/auth/api";
+import { isDemoMode } from "@/lib/demo-mode";
+import { initializeDemoFlow } from "@/lib/initialize-demo-flow";
 import { Button } from "@/components/common/Button";
 import { Input } from "@/components/common/Input";
 import styles from "./LoginForm.module.css";
@@ -55,6 +57,7 @@ export function LoginForm() {
       { email: values.email, password: values.password },
       {
         onSuccess: (data) => {
+          if (isDemoMode) initializeDemoFlow();
           window.localStorage.setItem(ACCESS_TOKEN_STORAGE_KEY, data.accessToken);
           window.localStorage.setItem(TOKEN_TYPE_STORAGE_KEY, data.tokenType);
           window.localStorage.setItem(MEMBER_EMAIL_STORAGE_KEY, data.email);
