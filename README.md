@@ -121,6 +121,28 @@ NEXT_PUBLIC_API_BASE_URL=http://localhost:8080 npm run dev
 | [Development Log](docs/development-log.md) | Git 이력과 구현 결과를 기준으로 정리한 개발 일지 |
 | [Roadmap](docs/roadmap.md) | Docker, HTTPS, CI/CD 등 후속 작업 |
 
+## Vercel 데모 배포
+
+사용자 흐름을 별도의 설치 과정 없이 확인할 수 있도록 프론트엔드를 Vercel에 배포했습니다. 백엔드가 배포되지 않은 환경에서도 서비스 경험을 보여줄 수 있도록 데모 모드를 제공합니다.
+
+데모 모드에서는 다음 흐름을 직접 체험할 수 있습니다.
+
+```text
+로그인 → 체형 정보 입력 → 기준 옷 치수·착용감 입력 → 상품 탐색 → 사이즈 추천 결과 확인
+```
+
+- 상품 목록·상세와 추천 결과는 예시 데이터로 제공됩니다.
+- 입력한 체형 및 기준 옷 정보는 데모 브라우저 내에서만 사용되며 실제 서버에 저장되지 않습니다.
+- 화면 상단의 `데모 모드` 안내를 통해 예시 데이터가 표시 중임을 확인할 수 있습니다.
+
+Vercel 배포 환경에는 아래 환경변수를 설정합니다.
+
+```env
+NEXT_PUBLIC_DEMO_MODE=true
+```
+
+실제 백엔드를 연결할 때는 `NEXT_PUBLIC_DEMO_MODE=false`로 변경하고 `NEXT_PUBLIC_API_BASE_URL`에 배포된 API 주소를 설정한 뒤 다시 배포합니다.
+
 ---
 
 [문서 홈](docs/architecture.md) · [배포](docs/deployment.md) · [트러블슈팅](docs/troubleshooting.md) · [개발 일지](docs/development-log.md) · [로드맵](docs/roadmap.md)
