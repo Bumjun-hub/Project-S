@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { isDemoMode } from "@/lib/demo-mode";
 import styles from "./Header.module.css";
 
 const navItems = [
@@ -84,6 +85,11 @@ export function Header() {
           )}
         </div>
       </div>
+      {isDemoMode && loginState.isLoggedIn ? (
+        <p className={styles.demoNotice} role="status">
+          데모 모드 · 현재 표시되는 상품과 추천 결과는 예시 데이터입니다.
+        </p>
+      ) : null}
     </header>
   );
 }

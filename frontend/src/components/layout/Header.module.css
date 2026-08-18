@@ -9,4 +9,5 @@
 .signup:hover { background: var(--primary-hover); box-shadow: 0 6px 14px rgba(37,99,235,.2); transform: translateY(-1px); }
 .welcome { max-width: 220px; overflow: hidden; color: var(--fg); font-size: .9rem; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
 .logout { border: 0; background: transparent; cursor: pointer; font-family: inherit; padding: 0; }
+.demoNotice { max-width: 1180px; margin: 8px auto 0; padding: 8px 14px; border: 1px solid rgba(245,158,11,.3); border-radius: 10px; background: rgba(255,251,235,.9); color: #92400e; font-size: .8rem; font-weight: 700; text-align: center; }
 @media (max-width: 680px) { .header { padding: 8px 12px; } .inner { height: 52px; padding-left: 14px; gap: 12px; } .nav { display: none; } .actions { gap: 10px; } }
