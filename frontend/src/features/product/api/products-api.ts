@@ -2,13 +2,21 @@
 import type { ApiResponse } from "@/features/profile/types";
 import type { Product } from "@/features/product/types";
 import { ApiError, apiRequest } from "@/lib/apiClient";
+import { isDemoMode } from "@/lib/demo-mode";
+import { mockProducts } from "./mock-products";
 
 export async function fetchProducts(): Promise<Product[]> {
+  if (isDemoMode) return mockProducts;
+
   const response = await apiRequest<ApiResponse<Product[]>>("/api/v1/products");
   return response.data;
 }
 
 export async function fetchProductById(id: string): Promise<Product | null> {
+  if (isDemoMode) {
+    return mockProducts.find((product) => product.id === id) ?? null;
+  }
+
   try {
     const response = await apiRequest<ApiResponse<Product>>(`/api/v1/products/${id}`);
     return response.data;

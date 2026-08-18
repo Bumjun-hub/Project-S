@@ -1,4 +1,5 @@
 import type { ApiResponse, LoginRequest, LoginResponseData, SignupRequest, SignupResponseData } from "./types";
+import { isDemoMode } from "@/lib/demo-mode";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
 
@@ -50,6 +51,17 @@ export async function signup(request: SignupRequest): Promise<SignupResponseData
 }
 
 export async function login(request: LoginRequest): Promise<LoginResponseData & { message: string }> {
+  if (isDemoMode) {
+    return {
+      accessToken: "demo-access-token",
+      tokenType: "Bearer",
+      memberId: 1,
+      email: request.email,
+      nickname: "데모 사용자",
+      message: "데모 로그인 완료",
+    };
+  }
+
   let response: Response;
 
   try {
