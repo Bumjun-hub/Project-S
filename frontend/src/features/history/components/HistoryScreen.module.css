@@ -18,7 +18,7 @@
 
 @media (min-width: 720px) {
   .statsGrid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
   }
 }
 
@@ -135,6 +135,48 @@
   border: 0.5px solid rgba(191, 211, 255, 0.35);
   background: linear-gradient(138deg, rgba(92, 124, 240, 0.35), rgba(140, 105, 230, 0.28));
   color: #f4f7ff;
+}
+
+.feedbackBlock {
+  display: grid;
+  gap: 0.45rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--border);
+}
+
+.feedbackLabel {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.feedbackButtons {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.35rem;
+}
+
+.feedbackButton {
+  min-height: 30px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 0.7rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.feedbackButton:hover:not(:disabled), .feedbackButtonActive {
+  border-color: #93c5fd;
+  background: #eff6ff;
+  color: var(--primary);
+}
+
+.feedbackButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 .actions {

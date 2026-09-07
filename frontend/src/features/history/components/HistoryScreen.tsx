@@ -4,13 +4,13 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { EmptyState } from "@/components/common/EmptyState";
 import { FlowFooterNav } from "@/components/common/FlowFooterNav";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { useAnalysisHistoryStore } from "@/features/history/store";
-import { fetchRecommendationHistory } from "@/features/history/api";
-import type { RecommendationRecord } from "@/features/history/types";
+import { fetchRecommendationHistory, updateRecommendationFeedback } from "@/features/history/api";
+import type { FitFeedback, RecommendationRecord } from "@/features/history/types";
 import styles from "./HistoryScreen.module.css";
 import { isDemoMode } from "@/lib/demo-mode";
 
@@ -43,6 +43,7 @@ export default function HistoryScreen() {
   const localHistory = useAnalysisHistoryStore((s) => s.history);
   const clearHistory = useAnalysisHistoryStore((s) => s.clearHistory);
   const setLastResult = useAnalysisHistoryStore((s) => s.setLastResult);
+  const queryClient = useQueryClient();
   const [ready, setReady] = useState(false);
   const historyQuery = useQuery({
     queryKey: ["recommendation-history"],
@@ -50,6 +51,15 @@ export default function HistoryScreen() {
     enabled: !isDemoMode,
   });
   const history = isDemoMode ? localHistory : (historyQuery.data ?? []);
+  const feedbackMutation = useMutation({
+    mutationFn: ({ historyId, feedback }: { historyId: string; feedback: FitFeedback }) =>
+      updateRecommendationFeedback(historyId, feedback),
+    onSuccess: (updatedRecord) => {
+      queryClient.setQueryData<RecommendationRecord[]>(["recommendation-history"], (records = []) =>
+        records.map((record) => record.id === updatedRecord.id ? updatedRecord : record),
+      );
+    },
+  });
 
   useEffect(() => {
     setReady(true);
@@ -60,7 +70,13 @@ export default function HistoryScreen() {
     const recent =
       history[0] != null ? `${history[0].brand} · ${history[0].productName}` : "—";
     const topSize = mostCommonRecommendedSize(history);
-    return { total, recent, topSize };
+    const averageMatch = history.length === 0
+      ? 0
+      : Math.round(history.reduce((sum, record) => sum + (record.matchScore ?? 0), 0) / history.length);
+    const feedbackCount = history.filter((record) => record.feedback != null).length;
+    const goodFeedbackCount = history.filter((record) => record.feedback === "GOOD").length;
+    const goodFeedbackRate = feedbackCount === 0 ? null : Math.round((goodFeedbackCount / feedbackCount) * 100);
+    return { total, recent, topSize, averageMatch, feedbackCount, goodFeedbackRate };
   }, [history]);
 
   if (!ready) {
@@ -89,7 +105,7 @@ export default function HistoryScreen() {
         <header>
           <h1 style={{ marginTop: 0, marginBottom: "0.35rem" }}>분석 기록</h1>
           <p className={styles.lead}>
-            브라우저에 저장됩니다(최대 40건). 새 기기와는 공유되지 않습니다.
+            내 추천 결과와 착용 피드백을 한곳에서 확인하세요.
           </p>
         </header>
 
@@ -108,6 +124,16 @@ export default function HistoryScreen() {
             <span className={styles.statLabel}>MODE SIZE</span>
             <p className={styles.statValue}>{stats.topSize}</p>
             <p className={styles.statSub}>가장 많이 나온 추천 사이즈</p>
+          </article>
+          <article className={styles.statCard}>
+            <span className={styles.statLabel}>AVG. MATCH</span>
+            <p className={styles.statValue}>{stats.total === 0 ? "—" : `${stats.averageMatch}%`}</p>
+            <p className={styles.statSub}>평균 추천 일치도</p>
+          </article>
+          <article className={styles.statCard}>
+            <span className={styles.statLabel}>FIT FEEDBACK</span>
+            <p className={styles.statValue}>{stats.goodFeedbackRate == null ? "—" : `${stats.goodFeedbackRate}%`}</p>
+            <p className={styles.statSub}>{stats.feedbackCount === 0 ? "착용 피드백 없음" : `${stats.feedbackCount}건의 피드백 기준`}</p>
           </article>
         </section>
 
@@ -135,6 +161,27 @@ export default function HistoryScreen() {
                 </p>
                 <div className={styles.badgeRow}>
                   <span className={styles.badgeFit}>MATCH {h.matchScore != null ? `${h.matchScore}%` : "READY"}</span>
+                </div>
+                <div className={styles.feedbackBlock}>
+                  <span className={styles.feedbackLabel}>추천 사이즈는 실제로 어땠나요?</span>
+                  <div className={styles.feedbackButtons}>
+                    {([
+                      ["GOOD", "잘 맞아요"],
+                      ["SMALL", "작아요"],
+                      ["LARGE", "커요"],
+                    ] as const).map(([feedback, label]) => (
+                      <button
+                        key={feedback}
+                        type="button"
+                        className={`${styles.feedbackButton}${h.feedback === feedback ? ` ${styles.feedbackButtonActive}` : ""}`}
+                        aria-pressed={h.feedback === feedback}
+                        disabled={isDemoMode || feedbackMutation.isPending}
+                        onClick={() => feedbackMutation.mutate({ historyId: h.id, feedback })}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
                 <div className={styles.actions}>
                   <button

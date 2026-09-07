@@ -1,5 +1,5 @@
 import type { ApiResponse } from "@/features/profile/types";
-import type { RecommendationRecord } from "@/features/history/types";
+import type { FitFeedback, RecommendationRecord } from "@/features/history/types";
 import { apiRequest } from "@/lib/apiClient";
 
 type RecommendationHistoryData = {
@@ -11,6 +11,7 @@ type RecommendationHistoryData = {
   matchScore: number;
   sizeScore: number;
   reason: string;
+  feedback: FitFeedback | null;
   createdAt: string;
 };
 
@@ -26,6 +27,7 @@ function mapHistoryDataToRecord(data: RecommendationHistoryData): Recommendation
     createdAt: data.createdAt,
     matchScore: data.matchScore,
     sizeScore: data.sizeScore,
+    feedback: data.feedback,
   };
 }
 
@@ -35,4 +37,19 @@ export async function fetchRecommendationHistory(): Promise<RecommendationRecord
   );
 
   return response.data.map(mapHistoryDataToRecord);
+}
+
+export async function updateRecommendationFeedback(
+  historyId: string,
+  feedback: FitFeedback,
+): Promise<RecommendationRecord> {
+  const response = await apiRequest<ApiResponse<RecommendationHistoryData>>(
+    `/api/v1/recommendations/history/${historyId}/feedback`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({ feedback }),
+    },
+  );
+
+  return mapHistoryDataToRecord(response.data);
 }

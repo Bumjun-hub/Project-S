@@ -10,6 +10,7 @@ const navItems = [
   { href: "/products", label: "Products" },
   { href: "/result", label: "Recommendation" },
   { href: "/#about", label: "About" },
+  { href: "/history", label: "Analysis History", requiresLogin: true },
 ];
 
 const ACCESS_TOKEN_STORAGE_KEY = "project-s-access-token";
@@ -65,11 +66,13 @@ export function Header() {
       <div className={styles.inner}>
         <Link href="/" className={styles.logo} aria-label="Project S 홈">Project S</Link>
         <nav className={styles.nav} aria-label="주요 메뉴">
-          {navItems.map((item) => (
-            <Link key={item.href} href={item.href} className={isActive(item.href) ? styles.active : undefined}>
-              {item.label}
-            </Link>
-          ))}
+          {navItems
+            .filter((item) => !item.requiresLogin || loginState.isLoggedIn)
+            .map((item) => (
+              <Link key={item.href} href={item.href} className={isActive(item.href) ? styles.active : undefined}>
+                {item.label}
+              </Link>
+            ))}
         </nav>
         <div className={styles.actions}>
           {loginState.isLoggedIn ? (
