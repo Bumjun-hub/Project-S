@@ -5,6 +5,7 @@ import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.not;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -41,6 +42,7 @@ class RecommendationIntegrationTest {
 	private static final String BODY_PROFILE_URL = "/api/v1/body-profiles";
 	private static final String MY_FIT_URL = "/api/v1/my-fits";
 	private static final String RECOMMENDATION_URL = "/api/v1/recommendations";
+	private static final String RECOMMENDATION_HISTORY_URL = "/api/v1/recommendations/history";
 	private static final String PASSWORD = "Password123!";
 	private static final String SUCCESS_MESSAGE =
 		"\uC0AC\uC774\uC988 \uCD94\uCC9C \uACB0\uACFC\uB97C \uC0DD\uC131\uD588\uC2B5\uB2C8\uB2E4.";
@@ -67,12 +69,35 @@ class RecommendationIntegrationTest {
 
 	@BeforeEach
 	void setUp() {
+		jdbcTemplate.update("delete from recommendation_histories");
 		jdbcTemplate.update("delete from my_fit_measurements");
 		jdbcTemplate.update("delete from my_fit_entries");
 		jdbcTemplate.update("delete from my_fits");
 		jdbcTemplate.update("delete from body_profile_features");
 		jdbcTemplate.update("delete from body_profiles");
 		jdbcTemplate.update("delete from members");
+	}
+
+	@Test
+	void get_recommendation_history_returns_current_members_records() throws Exception {
+		String accessToken = prepareUser("recommend-history@example.com");
+		createBodyProfile(accessToken);
+		createTopMyFit(accessToken);
+
+		mockMvc.perform(post(RECOMMENDATION_URL)
+				.header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(recommendationRequestJson("p-oxford-01")))
+			.andExpect(status().isOk());
+
+		mockMvc.perform(get(RECOMMENDATION_HISTORY_URL)
+				.header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.success").value(true))
+			.andExpect(jsonPath("$.data", hasSize(1)))
+			.andExpect(jsonPath("$.data[0].productCode").value("p-oxford-01"))
+			.andExpect(jsonPath("$.data[0].recommendedSize").value("M"))
+			.andExpect(jsonPath("$.data[0].createdAt").isNotEmpty());
 	}
 
 	@Test

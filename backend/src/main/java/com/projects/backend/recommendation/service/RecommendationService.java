@@ -26,7 +26,10 @@ import com.projects.backend.recommendation.calculator.RecommendationInput.Produc
 import com.projects.backend.recommendation.calculator.RecommendationInput.ProductSizeInput;
 import com.projects.backend.recommendation.calculator.RecommendationResult;
 import com.projects.backend.recommendation.dto.RecommendationCreateRequest;
+import com.projects.backend.recommendation.dto.RecommendationHistoryResponse;
 import com.projects.backend.recommendation.dto.RecommendationResponse;
+import com.projects.backend.recommendation.entity.RecommendationHistory;
+import com.projects.backend.recommendation.repository.RecommendationHistoryRepository;
 
 @Service
 public class RecommendationService {
@@ -35,20 +38,23 @@ public class RecommendationService {
 	private final MyFitRepository myFitRepository;
 	private final ProductRepository productRepository;
 	private final RecommendationCalculator recommendationCalculator;
+	private final RecommendationHistoryRepository recommendationHistoryRepository;
 
 	public RecommendationService(
 		MemberRepository memberRepository,
 		MyFitRepository myFitRepository,
 		ProductRepository productRepository,
-		RecommendationCalculator recommendationCalculator
+		RecommendationCalculator recommendationCalculator,
+		RecommendationHistoryRepository recommendationHistoryRepository
 	) {
 		this.memberRepository = memberRepository;
 		this.myFitRepository = myFitRepository;
 		this.productRepository = productRepository;
 		this.recommendationCalculator = recommendationCalculator;
+		this.recommendationHistoryRepository = recommendationHistoryRepository;
 	}
 
-	@Transactional(readOnly = true)
+	@Transactional
 	public RecommendationResponse recommend(String email, RecommendationCreateRequest request) {
 		Member member = findMemberByEmail(email);
 		MyFit myFit = findMyFitByMember(member);
@@ -57,8 +63,18 @@ public class RecommendationService {
 
 		RecommendationInput input = toRecommendationInput(myFitEntry, product.getSizes());
 		RecommendationResult result = recommendationCalculator.calculate(input);
+		recommendationHistoryRepository.save(RecommendationHistory.create(member, product, result));
 
 		return RecommendationResponse.of(product, result);
+	}
+
+	@Transactional(readOnly = true)
+	public List<RecommendationHistoryResponse> getHistory(String email) {
+		Member member = findMemberByEmail(email);
+
+		return recommendationHistoryRepository.findAllByMemberOrderByCreatedAtDesc(member).stream()
+			.map(RecommendationHistoryResponse::from)
+			.toList();
 	}
 
 	private Member findMemberByEmail(String email) {

@@ -4,12 +4,15 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { EmptyState } from "@/components/common/EmptyState";
 import { FlowFooterNav } from "@/components/common/FlowFooterNav";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { useAnalysisHistoryStore } from "@/features/history/store";
+import { fetchRecommendationHistory } from "@/features/history/api";
 import type { RecommendationRecord } from "@/features/history/types";
 import styles from "./HistoryScreen.module.css";
+import { isDemoMode } from "@/lib/demo-mode";
 
 function estimateFitFromSummary(summary: string) {
   if (summary.includes("오버")) return "오버핏";
@@ -37,10 +40,16 @@ function mostCommonRecommendedSize(records: RecommendationRecord[]): string {
 
 export default function HistoryScreen() {
   const router = useRouter();
-  const history = useAnalysisHistoryStore((s) => s.history);
+  const localHistory = useAnalysisHistoryStore((s) => s.history);
   const clearHistory = useAnalysisHistoryStore((s) => s.clearHistory);
   const setLastResult = useAnalysisHistoryStore((s) => s.setLastResult);
   const [ready, setReady] = useState(false);
+  const historyQuery = useQuery({
+    queryKey: ["recommendation-history"],
+    queryFn: fetchRecommendationHistory,
+    enabled: !isDemoMode,
+  });
+  const history = isDemoMode ? localHistory : (historyQuery.data ?? []);
 
   useEffect(() => {
     setReady(true);
@@ -58,6 +67,18 @@ export default function HistoryScreen() {
     return (
       <PageContainer maxWidth={1100}>
         <p style={{ color: "var(--muted)" }}>불러오는 중…</p>
+      </PageContainer>
+    );
+  }
+
+  if (!isDemoMode && historyQuery.isPending) {
+    return <PageContainer maxWidth={1100}><p style={{ color: "var(--muted)" }}>Loading history...</p></PageContainer>;
+  }
+
+  if (!isDemoMode && historyQuery.isError) {
+    return (
+      <PageContainer maxWidth={1100}>
+        <EmptyState title="Unable to load history" description="Please check your login session and API connection." />
       </PageContainer>
     );
   }
@@ -135,7 +156,7 @@ export default function HistoryScreen() {
           </ul>
         )}
 
-        <div className={styles.toolbar}>
+        {isDemoMode ? <div className={styles.toolbar}>
           <button
             type="button"
             className={styles.btnDanger}
@@ -146,7 +167,7 @@ export default function HistoryScreen() {
           >
             기록 비우기
           </button>
-        </div>
+        </div> : null}
 
         <FlowFooterNav
           items={[
