@@ -8,13 +8,14 @@ import { apiRequest } from "@/lib/apiClient";
 import { isDemoMode } from "@/lib/demo-mode";
 import { createMockRecommendation } from "./mock-recommendation";
 
-export async function createRecommendation(productCode: string): Promise<RecommendationData> {
+export async function createRecommendation(productCode: string, requestKey?: string): Promise<RecommendationData> {
   if (isDemoMode) return createMockRecommendation(productCode);
 
   const response = await apiRequest<ApiResponse<RecommendationData>>(
     "/api/v1/recommendations",
     {
       method: "POST",
+      headers: requestKey ? { "Idempotency-Key": requestKey } : undefined,
       body: JSON.stringify({
         productCode,
       } satisfies RecommendationCreateRequest),

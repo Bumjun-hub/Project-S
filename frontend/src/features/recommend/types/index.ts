@@ -34,6 +34,8 @@ export type MeasurementComparison = {
 };
 
 export type RecommendationData = {
+  historyId: number | string;
+  createdAt: string;
   productCode: string;
   productName: string;
   brand: string;

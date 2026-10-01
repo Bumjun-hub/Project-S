@@ -1,6 +1,8 @@
 import type { ApiResponse } from "@/features/profile/types";
 import type { FitFeedback, RecommendationRecord } from "@/features/history/types";
 import { apiRequest } from "@/lib/apiClient";
+import type { PageData } from "@/lib/pagination";
+import type { MeasurementComparison } from "@/features/recommend/types";
 
 type RecommendationHistoryData = {
   id: number;
@@ -13,6 +15,7 @@ type RecommendationHistoryData = {
   reason: string;
   feedback: FitFeedback | null;
   createdAt: string;
+  comparisons: MeasurementComparison[];
 };
 
 function mapHistoryDataToRecord(data: RecommendationHistoryData): RecommendationRecord {
@@ -23,7 +26,8 @@ function mapHistoryDataToRecord(data: RecommendationHistoryData): Recommendation
     brand: data.brand,
     recommendedSize: data.recommendedSize,
     summary: data.reason,
-    fitInsights: [],
+    fitInsights: (data.comparisons ?? []).map((comparison) => comparison.message),
+    comparisons: data.comparisons ?? [],
     createdAt: data.createdAt,
     matchScore: data.matchScore,
     sizeScore: data.sizeScore,
@@ -37,6 +41,11 @@ export async function fetchRecommendationHistory(): Promise<RecommendationRecord
   );
 
   return response.data.map(mapHistoryDataToRecord);
+}
+
+export async function fetchRecommendationHistoryPage(page: number): Promise<PageData<RecommendationRecord>> {
+  const response = await apiRequest<ApiResponse<PageData<RecommendationHistoryData>>>(`/api/v1/recommendations/history/page?page=${page}&size=12`);
+  return { ...response.data, content: response.data.content.map(mapHistoryDataToRecord) };
 }
 
 export async function updateRecommendationFeedback(

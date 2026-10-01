@@ -1,12 +1,10 @@
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
+import { getAccessToken } from "@/lib/auth-storage";
+export { AUTH_STORAGE_KEYS, getAccessToken } from "@/lib/auth-storage";
 
-export const AUTH_STORAGE_KEYS = {
-  accessToken: "project-s-access-token",
-  tokenType: "project-s-token-type",
-  email: "project-s-member-email",
-  nickname: "project-s-member-nickname",
-} as const;
+const API_BASE_URL =
+  typeof window === "undefined"
+    ? process.env.SERVER_API_BASE_URL ?? process.env.NEXT_PUBLIC_API_BASE_URL ?? ""
+    : process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
 
 interface ErrorResponse {
   success: false;
@@ -30,11 +28,6 @@ export class ApiError extends Error {
     this.code = code;
     this.responseMessage = message;
   }
-}
-
-export function getAccessToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return window.localStorage.getItem(AUTH_STORAGE_KEYS.accessToken);
 }
 
 function buildApiUrl(path: string): string {
@@ -95,6 +88,7 @@ export async function apiRequest<T>(
 ): Promise<T> {
   const url = buildApiUrl(path);
   const headers = createHeaders(options);
+  const requestToken = headers.get("Authorization");
 
   let response: Response;
   try {
@@ -107,6 +101,14 @@ export async function apiRequest<T>(
       throw error;
     }
     throw new ApiError(0, null, "서버에 연결할 수 없습니다.");
+  }
+
+  if (requestToken && typeof window !== "undefined" && requestToken !== `Bearer ${getAccessToken()}`) {
+    throw new DOMException("Session changed", "AbortError");
+  }
+  if (response.status === 401 && requestToken && typeof window !== "undefined") {
+    const { endSession } = await import("@/lib/auth-session");
+    endSession();
   }
 
   if (response.status === 204) {
@@ -127,5 +129,9 @@ export async function apiRequest<T>(
     );
   }
 
-  return (await response.json()) as T;
+  const payload = (await response.json()) as T;
+  if (requestToken && typeof window !== "undefined" && requestToken !== `Bearer ${getAccessToken()}`) {
+    throw new DOMException("Session changed", "AbortError");
+  }
+  return payload;
 }

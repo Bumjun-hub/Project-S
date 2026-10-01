@@ -9,17 +9,13 @@ import { EmptyState } from "@/components/common/EmptyState";
 import { FlowFooterNav } from "@/components/common/FlowFooterNav";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { useAnalysisHistoryStore } from "@/features/history/store";
-import { fetchRecommendationHistory, updateRecommendationFeedback } from "@/features/history/api";
+import { fetchRecommendationHistoryPage, updateRecommendationFeedback } from "@/features/history/api";
+import { Pagination } from "@/components/common/Pagination";
+import { paginate } from "@/lib/pagination";
+import { readSessionIdentity, useSessionIdentity } from "@/lib/auth-session";
 import type { FitFeedback, RecommendationRecord } from "@/features/history/types";
 import styles from "./HistoryScreen.module.css";
 import { isDemoMode } from "@/lib/demo-mode";
-
-function estimateFitFromSummary(summary: string) {
-  if (summary.includes("오버")) return "오버핏";
-  if (summary.includes("레귤러")) return "레귤러핏";
-  if (summary.includes("슬림")) return "슬림핏";
-  return "세미 오버핏";
-}
 
 function mostCommonRecommendedSize(records: RecommendationRecord[]): string {
   if (records.length === 0) return "—";
@@ -44,20 +40,24 @@ export default function HistoryScreen() {
   const clearHistory = useAnalysisHistoryStore((s) => s.clearHistory);
   const setLastResult = useAnalysisHistoryStore((s) => s.setLastResult);
   const queryClient = useQueryClient();
+  const identity = useSessionIdentity();
+  const commitRecommendation = useAnalysisHistoryStore((s) => s.commitRecommendation);
+  const [page, setPage] = useState(0);
   const [ready, setReady] = useState(false);
   const historyQuery = useQuery({
-    queryKey: ["recommendation-history"],
-    queryFn: fetchRecommendationHistory,
-    enabled: !isDemoMode,
+    queryKey: ["recommendation-history", identity, page],
+    queryFn: () => fetchRecommendationHistoryPage(page),
+    enabled: !isDemoMode && Boolean(identity),
   });
-  const history = isDemoMode ? localHistory : (historyQuery.data ?? []);
+  const pageData = isDemoMode ? paginate(localHistory, page, 12) : historyQuery.data;
+  const history = pageData?.content ?? [];
   const feedbackMutation = useMutation({
     mutationFn: ({ historyId, feedback }: { historyId: string; feedback: FitFeedback }) =>
       updateRecommendationFeedback(historyId, feedback),
     onSuccess: (updatedRecord) => {
-      queryClient.setQueryData<RecommendationRecord[]>(["recommendation-history"], (records = []) =>
-        records.map((record) => record.id === updatedRecord.id ? updatedRecord : record),
-      );
+      if (readSessionIdentity() !== identity) return;
+      if (useAnalysisHistoryStore.getState().lastResult?.id === updatedRecord.id) setLastResult(updatedRecord);
+      void queryClient.invalidateQueries({ queryKey: ["recommendation-history", identity] });
     },
   });
 
@@ -88,13 +88,13 @@ export default function HistoryScreen() {
   }
 
   if (!isDemoMode && historyQuery.isPending) {
-    return <PageContainer maxWidth={1100}><p style={{ color: "var(--muted)" }}>Loading history...</p></PageContainer>;
+    return <PageContainer maxWidth={1100}><p role="status" style={{ color: "var(--muted)" }}>분석 기록을 불러오는 중이에요.</p></PageContainer>;
   }
 
   if (!isDemoMode && historyQuery.isError) {
     return (
       <PageContainer maxWidth={1100}>
-        <EmptyState title="Unable to load history" description="Please check your login session and API connection." />
+        <EmptyState title="분석 기록을 불러오지 못했어요" description="연결 상태를 확인하고 다시 시도해 주세요."><button type="button" onClick={() => void historyQuery.refetch()}>다시 시도</button></EmptyState>
       </PageContainer>
     );
   }
@@ -112,28 +112,28 @@ export default function HistoryScreen() {
         <section className={styles.statsGrid} aria-label="요약">
           <article className={styles.statCard}>
             <span className={styles.statLabel}>TOTAL</span>
-            <p className={styles.statValue}>{stats.total}</p>
+            <p className={styles.statValue}>{pageData?.totalElements ?? 0}</p>
             <p className={styles.statSub}>총 분석 횟수</p>
           </article>
           <article className={styles.statCard}>
             <span className={styles.statLabel}>LATEST</span>
             <p className={styles.statValue}>{stats.recent}</p>
-            <p className={styles.statSub}>가장 최근 분석 상품</p>
+            <p className={styles.statSub}>현재 페이지의 최신 상품</p>
           </article>
           <article className={styles.statCard}>
             <span className={styles.statLabel}>MODE SIZE</span>
             <p className={styles.statValue}>{stats.topSize}</p>
-            <p className={styles.statSub}>가장 많이 나온 추천 사이즈</p>
+            <p className={styles.statSub}>현재 페이지의 최빈 사이즈</p>
           </article>
           <article className={styles.statCard}>
             <span className={styles.statLabel}>AVG. MATCH</span>
             <p className={styles.statValue}>{stats.total === 0 ? "—" : `${stats.averageMatch}%`}</p>
-            <p className={styles.statSub}>평균 추천 일치도</p>
+            <p className={styles.statSub}>현재 페이지의 실측 일치도 평균</p>
           </article>
           <article className={styles.statCard}>
             <span className={styles.statLabel}>FIT FEEDBACK</span>
             <p className={styles.statValue}>{stats.goodFeedbackRate == null ? "—" : `${stats.goodFeedbackRate}%`}</p>
-            <p className={styles.statSub}>{stats.feedbackCount === 0 ? "착용 피드백 없음" : `${stats.feedbackCount}건의 피드백 기준`}</p>
+            <p className={styles.statSub}>{stats.feedbackCount === 0 ? "착용 피드백 없음" : `현재 페이지 ${stats.feedbackCount}건 기준`}</p>
           </article>
         </section>
 
@@ -157,7 +157,7 @@ export default function HistoryScreen() {
                 <p className={styles.recordMeta}>
                   권장 사이즈 <strong>{h.recommendedSize}</strong>
                   {" · "}
-                  예상 핏 {estimateFitFromSummary(h.summary)}
+                  {h.brand}
                 </p>
                 <div className={styles.badgeRow}>
                   <span className={styles.badgeFit}>MATCH {h.matchScore != null ? `${h.matchScore}%` : "READY"}</span>
@@ -175,8 +175,11 @@ export default function HistoryScreen() {
                         type="button"
                         className={`${styles.feedbackButton}${h.feedback === feedback ? ` ${styles.feedbackButtonActive}` : ""}`}
                         aria-pressed={h.feedback === feedback}
-                        disabled={isDemoMode || feedbackMutation.isPending}
-                        onClick={() => feedbackMutation.mutate({ historyId: h.id, feedback })}
+                        disabled={feedbackMutation.isPending}
+                        onClick={() => {
+                          if (isDemoMode) commitRecommendation({ ...h, feedback });
+                          else feedbackMutation.mutate({ historyId: h.id, feedback });
+                        }}
                       >
                         {label}
                       </button>
@@ -203,6 +206,8 @@ export default function HistoryScreen() {
           </ul>
         )}
 
+        {feedbackMutation.isError ? <p role="alert">피드백 저장에 실패했어요. 다시 선택해 주세요.</p> : null}
+        <Pagination page={page} totalPages={pageData?.totalPages ?? 0} onChange={setPage} busy={historyQuery.isFetching} />
         {isDemoMode ? <div className={styles.toolbar}>
           <button
             type="button"

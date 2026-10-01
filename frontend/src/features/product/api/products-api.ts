@@ -4,6 +4,20 @@ import type { Product } from "@/features/product/types";
 import { ApiError, apiRequest } from "@/lib/apiClient";
 import { isDemoMode } from "@/lib/demo-mode";
 import { mockProducts } from "./mock-products";
+import { paginate, type PageData } from "@/lib/pagination";
+
+export type ProductPageParams = { page?: number; size?: number; category?: string; search?: string };
+
+export async function fetchProductPage({ page = 0, size = 12, category = "all", search = "" }: ProductPageParams = {}): Promise<PageData<Product>> {
+  if (isDemoMode) {
+    const query = search.trim().toLowerCase();
+    return paginate(mockProducts.filter((product) => (category === "all" || product.category === category)
+      && `${product.name} ${product.brand} ${product.description}`.toLowerCase().includes(query)), page, size);
+  }
+  const params = new URLSearchParams({ page: String(page), size: String(size), category, search });
+  const response = await apiRequest<ApiResponse<PageData<Product>>>(`/api/v1/products/page?${params}`);
+  return response.data;
+}
 
 export async function fetchProducts(): Promise<Product[]> {
   if (isDemoMode) return mockProducts;

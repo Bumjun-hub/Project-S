@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { GlassStateBlock } from "@/components/common/GlassStateBlock";
 import { StepPageShell } from "@/components/layout/StepPageShell";
@@ -12,7 +12,6 @@ import { useFitReferenceStore } from "@/features/my-fit/store";
 import { useUserProfileStore } from "@/features/profile/store";
 import { createRecommendation } from "@/features/recommend/api";
 import { mapRecommendationResponseToRecord } from "@/features/recommend/lib/recommendationMapper";
-import { stableRecommendationRecordId } from "@/features/recommend/utils/stable-record-id";
 import { ApiError } from "@/lib/apiClient";
 
 function getRecommendationErrorMessage(error: unknown): string {
@@ -35,14 +34,22 @@ export default function RecommendRunnerScreen({ productId }: { productId: string
   const commitRecommendation = useAnalysisHistoryStore((s) => s.commitRecommendation);
 
   const [error, setError] = useState<string | null>(null);
+  const [retryAttempt, setRetryAttempt] = useState(0);
+  const requestKey = useRef<{ productCode: string; key: string } | null>(null);
   const { mutateAsync } = useMutation({
-    mutationFn: createRecommendation,
+    mutationFn: (code: string) => {
+      if (requestKey.current?.productCode !== code) {
+        requestKey.current = { productCode: code, key: crypto.randomUUID() };
+      }
+      return createRecommendation(code, requestKey.current.key);
+    },
   });
 
   useEffect(() => {
     let cancelled = false;
 
     async function run() {
+      setError(null);
       if (profile.heightCm == null || profile.weightKg == null) {
         setError("프로필(키·몸무게)을 먼저 입력해 주세요.");
         return;
@@ -63,11 +70,7 @@ export default function RecommendRunnerScreen({ productId }: { productId: string
         const response = await mutateAsync(productId);
         if (cancelled) return;
 
-        const record = mapRecommendationResponseToRecord(
-          response,
-          stableRecommendationRecordId(productId, profile, myFit),
-          new Date().toISOString(),
-        );
+        const record = mapRecommendationResponseToRecord(response);
         commitRecommendation(record);
         router.replace("/result");
       } catch (caughtError) {
@@ -80,12 +83,13 @@ export default function RecommendRunnerScreen({ productId }: { productId: string
     return () => {
       cancelled = true;
     };
-  }, [productId, profile, myFit, commitRecommendation, router, mutateAsync]);
+  }, [productId, profile, myFit, commitRecommendation, router, mutateAsync, retryAttempt]);
 
   if (error) {
     return (
       <StepPageShell step={6} label="사이즈 분석" title="분석 불가" maxWidth={560} panelClassName="result-panel-shell">
         <GlassStateBlock className="result-measure-card" title="입력 조건을 확인해 주세요." description={error}>
+          <button type="button" onClick={() => setRetryAttempt((attempt) => attempt + 1)}>다시 시도</button>
           <p style={{ margin: 0 }}>
             <Link href="/profile">프로필</Link>
             {" · "}

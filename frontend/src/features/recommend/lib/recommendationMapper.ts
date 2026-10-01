@@ -4,18 +4,16 @@ import type { RecommendationData } from "@/features/recommend/types";
 
 export function mapRecommendationResponseToRecord(
   response: RecommendationData,
-  id: string,
-  createdAt: string,
 ): RecommendationRecord {
   return {
-    id,
+    id: String(response.historyId),
     productId: response.productCode,
     productName: response.productName,
     brand: response.brand,
     recommendedSize: response.recommendedSize,
     summary: response.reason,
     fitInsights: response.comparisons.map((comparison) => comparison.message),
-    createdAt,
+    createdAt: response.createdAt,
     matchScore: response.matchScore,
     sizeScore: response.sizeScore,
     comparisons: response.comparisons,

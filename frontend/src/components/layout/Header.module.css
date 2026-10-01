@@ -1,13 +1,33 @@
 .header { position: sticky; top: 0; z-index: 30; padding: 12px 20px; }
 .inner { max-width: 1180px; height: 56px; margin: 0 auto; padding: 0 12px 0 18px; display: flex; align-items: center; justify-content: space-between; gap: 24px; border: 1px solid rgba(229,231,235,.86); border-radius: 16px; background: rgba(255,255,255,.82); box-shadow: 0 6px 20px rgba(15,23,42,.05); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
-.logo { color: var(--fg); font-weight: 800; text-decoration: none; letter-spacing: -.04em; }
+.logo { flex: none; color: var(--fg); font-weight: 800; text-decoration: none; letter-spacing: -.04em; white-space: nowrap; }
 .nav { display: flex; align-items: center; gap: 24px; }
 .nav a, .login, .logout { color: var(--muted); font-size: .9rem; font-weight: 600; text-decoration: none; transition: color .2s ease; }
 .nav a:hover, .nav a:focus-visible, .login:hover, .login:focus-visible, .logout:hover, .logout:focus-visible, .active { color: var(--primary) !important; }
-.actions { display: flex; align-items: center; gap: 14px; }
+.actions { flex: none; display: flex; align-items: center; gap: 14px; }
 .signup { display: inline-flex; align-items: center; justify-content: center; min-height: 34px; padding: 0 14px; border-radius: 10px; background: var(--primary); color: white; font-size: .86rem; font-weight: 700; text-decoration: none; transition: transform .2s ease, background .2s ease, box-shadow .2s ease; }
 .signup:hover { background: var(--primary-hover); box-shadow: 0 6px 14px rgba(37,99,235,.2); transform: translateY(-1px); }
 .welcome { max-width: 220px; overflow: hidden; color: var(--fg); font-size: .9rem; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
 .logout { border: 0; background: transparent; cursor: pointer; font-family: inherit; padding: 0; }
 .demoNotice { max-width: 1180px; margin: 8px auto 0; padding: 8px 14px; border: 1px solid rgba(245,158,11,.3); border-radius: 10px; background: rgba(255,251,235,.9); color: #92400e; font-size: .8rem; font-weight: 700; text-align: center; }
+.landingHeader { padding: 0 36px; background: #fbfaf7; }
+.landingHeader .inner { max-width: 1440px; height: 84px; padding: 0 22px; border: 0; border-radius: 0; background: transparent; box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none; }
+.landingHeader .logo { font-size: .94rem; letter-spacing: .28em; text-transform: uppercase; }
+.landingHeader .nav { gap: 36px; }
+.landingHeader .nav a, .landingHeader .login { color: #242a33; font-size: .86rem; font-weight: 600; }
+.landingHeader .signup { min-height: 48px; padding: 0 24px; border-radius: 999px; background: #1659d8; }
+.landingHeader .signup:hover { background: #104bbc; box-shadow: 0 10px 22px rgba(22,89,216,.22); }
+@media (max-width: 900px) { .landingHeader { padding-inline: 20px; } .landingHeader .nav { display: none; } }
 @media (max-width: 680px) { .header { padding: 8px 12px; } .inner { height: 52px; padding-left: 14px; gap: 12px; } .nav { display: none; } .actions { gap: 10px; } }
+@media (max-width: 680px) { .landingHeader { padding: 8px 12px; } .landingHeader .inner { height: 58px; padding: 0 4px 0 12px; } .landingHeader .signup { min-height: 40px; padding: 0 15px; } }
+.menuToggle { display: none; width: 44px; height: 44px; border: 1px solid var(--border); border-radius: 8px; background: transparent; color: var(--fg); cursor: pointer; }
+.menuToggle:focus-visible { outline: 3px solid var(--primary); outline-offset: 3px; }
+@media (max-width: 1180px) {
+  .landingHeader .inner { gap: 16px; position: relative; }
+  .menuToggle { display: inline-flex; align-items: center; justify-content: center; margin-left: auto; }
+  .landingHeader .nav { display: none; }
+  .landingHeader .menuOpen { display: flex; position: absolute; top: 100%; left: 0; right: 0; flex-direction: column; align-items: stretch; gap: 0; padding: 12px; background: #fbfaf7; border: 1px solid var(--border); box-shadow: 0 12px 24px #17202c12; }
+  .menuOpen a { padding: 14px; }
+  .welcome { max-width: 130px; }
+}
+@media (max-width: 480px) { .welcome { display: none; } .landingHeader .signup { font-size: .76rem; padding-inline: 10px; } .landingHeader .logo { letter-spacing: .12em; } }

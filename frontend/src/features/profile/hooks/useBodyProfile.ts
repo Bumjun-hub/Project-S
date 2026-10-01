@@ -12,15 +12,18 @@ import {
   updateBodyProfile,
 } from "@/features/profile/api";
 import { ApiError } from "@/lib/apiClient";
+import { useSessionIdentity } from "@/lib/auth-session";
 
 export const bodyProfileQueryKeys = {
   all: ["body-profile"] as const,
-  me: () => [...bodyProfileQueryKeys.all, "me"] as const,
+  me: (identity: string | null) => [...bodyProfileQueryKeys.all, "me", identity] as const,
 };
 
 export function useBodyProfileQuery() {
+  const identity = useSessionIdentity();
   return useQuery({
-    queryKey: bodyProfileQueryKeys.me(),
+    queryKey: bodyProfileQueryKeys.me(identity),
+    enabled: Boolean(identity),
     queryFn: getMyBodyProfile,
     staleTime: 5 * 60 * 1000,
     retry: (failureCount, error) => {
@@ -38,13 +41,14 @@ export function useBodyProfileQuery() {
 }
 
 export function useCreateBodyProfileMutation() {
+  const identity = useSessionIdentity();
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: createBodyProfile,
     onSuccess: (createdProfile) => {
       queryClient.setQueryData(
-        bodyProfileQueryKeys.me(),
+        bodyProfileQueryKeys.me(identity),
         createdProfile,
       );
     },
@@ -52,13 +56,14 @@ export function useCreateBodyProfileMutation() {
 }
 
 export function useUpdateBodyProfileMutation() {
+  const identity = useSessionIdentity();
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: updateBodyProfile,
     onSuccess: (updatedProfile) => {
       queryClient.setQueryData(
-        bodyProfileQueryKeys.me(),
+        bodyProfileQueryKeys.me(identity),
         updatedProfile,
       );
     },

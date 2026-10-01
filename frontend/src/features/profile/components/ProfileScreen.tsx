@@ -19,6 +19,7 @@ import {
 import type { UserProfileState } from "@/features/profile/types";
 import { useUserProfileStore } from "@/features/profile/store";
 import { ApiError } from "@/lib/apiClient";
+import { readSessionIdentity, safeReturnTo, useSessionIdentity } from "@/lib/auth-session";
 import tagStyles from "./ProfileBodyShapeTags.module.css";
 import styles from "./ProfileScreen.module.css";
 
@@ -76,6 +77,7 @@ function getErrorMessage(error: unknown): string {
 
 export default function ProfileScreen() {
   const router = useRouter();
+  const identity = useSessionIdentity();
   const profile = useUserProfileStore((s) => s.profile);
   const setProfile = useUserProfileStore((s) => s.setProfile);
   const bodyProfileQuery = useBodyProfileQuery();
@@ -102,12 +104,13 @@ export default function ProfileScreen() {
     if (!bodyProfileQuery.data || initializedFromServerRef.current) return;
 
     const localProfile = toLocalUserProfile(bodyProfileQuery.data);
+    setProfile(localProfile);
     setHeight(localProfile.heightCm?.toString() ?? "");
     setWeight(localProfile.weightKg?.toString() ?? "");
     setGender(localProfile.gender);
     setBodyShapeTags(localProfile.bodyShapeTags);
     initializedFromServerRef.current = true;
-  }, [bodyProfileQuery.data]);
+  }, [bodyProfileQuery.data, setProfile]);
 
   function toggleBodyShapeTag(label: string) {
     setBodyShapeTags((prev) =>
@@ -122,8 +125,8 @@ export default function ProfileScreen() {
     setFormError(null);
     const h = height.trim() === "" ? null : Number(height);
     const w = weight.trim() === "" ? null : Number(weight);
-    if (h == null || Number.isNaN(h) || w == null || Number.isNaN(w)) {
-      setFormError("키와 몸무게를 숫자로 입력해 주세요.");
+    if (h == null || !Number.isFinite(h) || h < 100 || h > 250 || w == null || !Number.isFinite(w) || w < 20 || w > 300) {
+      setFormError("키는 100~250cm, 몸무게는 20~300kg 범위로 입력해 주세요.");
       return;
     }
 
@@ -154,8 +157,10 @@ export default function ProfileScreen() {
           })
         : await createMutation.mutateAsync(createRequest);
       const syncedProfile = toLocalUserProfile(response);
+      if (readSessionIdentity() !== identity) return;
       setProfile(syncedProfile);
-      router.push("/my-fit");
+      const destination = safeReturnTo(new URLSearchParams(window.location.search).get("returnTo"));
+      router.push(`/my-fit?returnTo=${encodeURIComponent(destination)}`);
     } catch (error: unknown) {
       setFormError(getErrorMessage(error));
     }
@@ -222,15 +227,14 @@ export default function ProfileScreen() {
               <p className={styles.stepIndex}>STEP 3</p>
               <div className={styles.field}>
                 <span className={styles.fieldLabel}>성별</span>
-                <div className={styles.genderPills} role="radiogroup" aria-label="성별 선택">
+                <div className={styles.genderPills} role="group" aria-label="성별 선택">
                   {GENDER_OPTIONS.map((opt) => {
                     const selected = gender === opt.value;
                     return (
                       <button
                         key={opt.label}
                         type="button"
-                        role="radio"
-                        aria-checked={selected}
+                        aria-pressed={selected}
                         className={`${styles.genderPill}${selected ? ` ${styles.genderPillActive}` : ""}`}
                         onClick={() => setGender(opt.value)}
                       >
@@ -246,7 +250,7 @@ export default function ProfileScreen() {
               <p className={styles.stepIndex}>STEP 4</p>
               <div className={styles.field}>
                 <span className={styles.fieldLabel}>체형 특징</span>
-                <p className={tagStyles.hint}>해당되는 항목을 눌러 선택할 수 있습니다. (복수 선택)</p>
+                <p className={tagStyles.hint}>복수 선택할 수 있어요. 현재 체형 태그는 프로필 기록용이며 추천 계산에는 사용되지 않습니다.</p>
                 <div className={tagStyles.tagWrap} role="group" aria-label="체형 특징 태그">
                   {BODY_SHAPE_TAG_OPTIONS.map((label) => {
                     const selected = bodyShapeTags.includes(label);

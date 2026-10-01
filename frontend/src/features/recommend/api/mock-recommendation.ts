@@ -6,13 +6,15 @@ export function createMockRecommendation(productCode: string): RecommendationDat
   const size = product.sizes[Math.min(1, product.sizes.length - 1)];
 
   return {
+    historyId: `demo-${crypto.randomUUID()}`,
+    createdAt: new Date().toISOString(),
     productCode: product.id,
     productName: product.name,
     brand: product.brand,
     recommendedSize: size.label,
     matchScore: 91,
     sizeScore: 90,
-    reason: "데모 체형과 기준 옷 정보를 바탕으로 가장 균형 잡힌 사이즈를 추천합니다.",
+    reason: "상품 실측표를 이용한 예시 결과입니다. 실제 추천은 기준 옷 실측과 착용감을 비교합니다.",
     comparisons: size.measurements.slice(0, 4).map((measurement) => ({
       area: measurement.area,
       areaLabel: measurement.areaLabel,

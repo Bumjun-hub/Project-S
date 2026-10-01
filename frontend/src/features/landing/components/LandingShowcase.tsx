@@ -1,18 +1,17 @@
 "use client";
 
-import { AnimatePresence, motion, useInView, useMotionValueEvent, useScroll } from "framer-motion";
+import { AnimatePresence, motion, useInView, useReducedMotion } from "framer-motion";
 import { ArrowRight, BrainCircuit, GitCompareArrows, ShieldCheck, Sparkles, Timer } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { type FormEvent, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { type FormEvent, type ReactNode, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/common/Button";
-import { Input } from "@/components/common/Input";
 import { useAnalysisHistoryStore } from "@/features/history/store";
 import { useProductsQuery } from "@/features/product/api/use-products-query";
 import { getProductImageSrc } from "@/features/product/lib/product-image";
-import { useUserProfileStore } from "@/features/profile/store";
 import styles from "./LandingShowcase.module.css";
+import { useSessionIdentity } from "@/lib/auth-session";
 
 const revealVariants = {
   hidden: { opacity: 0, y: 28 },
@@ -22,37 +21,24 @@ const revealVariants = {
 type ScrollRevealSectionProps = {
   children: ReactNode;
   className?: string;
+  id?: string;
   "aria-labelledby"?: string;
 };
 
 function ScrollRevealSection({ children, ...props }: ScrollRevealSectionProps) {
   const ref = useRef<HTMLElement>(null);
-  const isInView = useInView(ref, { amount: 0.45 });
-  const [isVisible, setIsVisible] = useState(false);
-  const scrollDirection = useRef<"up" | "down">("down");
-  const { scrollY } = useScroll();
-
-  useMotionValueEvent(scrollY, "change", (current) => {
-    const previous = scrollY.getPrevious();
-    if (previous !== undefined && current !== previous) scrollDirection.current = current > previous ? "down" : "up";
-  });
-
-  useEffect(() => {
-    if (isInView) {
-      setIsVisible(true);
-    } else if (scrollDirection.current === "up") {
-      setIsVisible(false);
-    }
-  }, [isInView]);
+  // Long mobile sections may never occupy 45% of the viewport at once.
+  const isInView = useInView(ref, { amount: 0.1, once: true });
+  const reduceMotion = useReducedMotion();
 
   return (
     <motion.section
       ref={ref}
       {...props}
-      initial="hidden"
-      animate={isVisible ? "visible" : "hidden"}
+      initial={reduceMotion ? false : "hidden"}
+      animate={reduceMotion || isInView ? "visible" : "hidden"}
       variants={revealVariants}
-      transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+      transition={{ duration: reduceMotion ? 0 : 0.8, ease: [0.22, 1, 0.36, 1] }}
     >
       {children}
     </motion.section>
@@ -60,22 +46,21 @@ function ScrollRevealSection({ children, ...props }: ScrollRevealSectionProps) {
 }
 
 const features = [
-  { icon: BrainCircuit, title: "실측 기반 추천", text: "입력한 체형과 상품 실측을 함께 비교합니다." },
-  { icon: GitCompareArrows, title: "브랜드별 사이즈 비교", text: "서로 다른 브랜드의 사이즈 기준을 한눈에 비교합니다." },
+  { icon: BrainCircuit, title: "실측 기반 추천", text: "기준 옷의 부위별 실측과 착용감을 상품 사이즈표와 비교합니다." },
+  { icon: GitCompareArrows, title: "부위별 차이 확인", text: "추천 사이즈와 내 목표 실측의 차이를 cm 단위로 확인합니다." },
   { icon: Timer, title: "빠른 추천", text: "복잡한 탐색 없이 몇 단계만으로 결과를 확인합니다." },
   { icon: ShieldCheck, title: "구매 실패 감소", text: "사이즈 선택의 불확실성을 줄여 더 나은 구매를 돕습니다." },
 ];
 
 export function LandingShowcase() {
   const router = useRouter();
-  const { data: products = [] } = useProductsQuery();
-  const lastResult = useAnalysisHistoryStore((state) => state.lastResult);
-  const profile = useUserProfileStore((state) => state.profile);
-  const setProfile = useUserProfileStore((state) => state.setProfile);
+  const identity = useSessionIdentity();
+  const { data, isPending, isError, refetch } = useProductsQuery();
+  const products = data?.content ?? [];
+  const storedResult = useAnalysisHistoryStore((state) => state.lastResult);
+  const lastResult = identity ? storedResult : null;
   const [loading, setLoading] = useState(false);
   const [selectedProductId, setSelectedProductId] = useState("");
-  const [heightCm, setHeightCm] = useState(profile.heightCm?.toString() ?? "");
-  const [weightKg, setWeightKg] = useState(profile.weightKg?.toString() ?? "");
 
   const selectedProduct = useMemo(
     () => products.find((product) => product.id === selectedProductId),
@@ -84,15 +69,9 @@ export function LandingShowcase() {
 
   const recommend = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const height = Number(heightCm);
-    const weight = Number(weightKg);
-    if (!selectedProductId || !Number.isFinite(height) || !Number.isFinite(weight)) return;
+    if (!selectedProductId) return;
 
     setLoading(true);
-    setProfile({
-      heightCm: height,
-      weightKg: weight,
-    });
     router.push(`/recommend/${selectedProductId}`);
   };
 
@@ -102,39 +81,16 @@ export function LandingShowcase() {
         <div className={styles.heading}>
           <p>RECOMMENDATION</p>
           <h2 id="demo-title">내 사이즈를 바로 확인해보세요.</h2>
-          <span>상품을 선택하면 저장된 프로필과 기준 옷 실측을 바탕으로 실제 추천 분석을 진행합니다.</span>
+          <span>기준 옷의 실측과 착용감을 상품 사이즈표와 비교합니다. 처음이라면 로그인 후 등록을 안내해 드려요.</span>
         </div>
         <div className={styles.demoCard}>
           <form className={styles.form} onSubmit={recommend}>
             <div className={styles.fieldGrid}>
               <label>
-                <span>키</span>
-                <Input
-                  type="number"
-                  min={120}
-                  max={220}
-                  placeholder="172 cm"
-                  required
-                  value={heightCm}
-                  onChange={(event) => setHeightCm(event.target.value)}
-                />
-              </label>
-              <label>
-                <span>몸무게</span>
-                <Input
-                  type="number"
-                  min={30}
-                  max={200}
-                  placeholder="63 kg"
-                  required
-                  value={weightKg}
-                  onChange={(event) => setWeightKg(event.target.value)}
-                />
-              </label>
-              <label>
                 <span>상품</span>
                 <select
                   required
+                  disabled={isPending || isError}
                   value={selectedProductId}
                   onChange={(event) => setSelectedProductId(event.target.value)}
                 >
@@ -149,7 +105,10 @@ export function LandingShowcase() {
                 </select>
               </label>
             </div>
-            <Button type="submit" className={styles.recommendButton} disabled={loading || !selectedProductId || !heightCm || !weightKg}>
+            {isPending ? <p role="status">상품을 불러오는 중이에요.</p> : null}
+            {isError ? <p role="alert">상품을 불러오지 못했어요. <button type="button" onClick={() => void refetch()}>다시 시도</button></p> : null}
+            {!isPending && !isError && products.length === 0 ? <p role="status">아직 등록된 상품이 없어요.</p> : null}
+            <Button type="submit" className={styles.recommendButton} disabled={loading || isError || !selectedProductId}>
               {loading ? (
                 <>
                   <span className={styles.spinner} /> 분석 중...
@@ -172,7 +131,7 @@ export function LandingShowcase() {
                   className={styles.resultEmpty}
                 >
                   <span className={styles.resultPulse} />
-                  <p>프로필과 상품 실측을 비교하고 있어요.</p>
+                  <p>분석 페이지로 이동하고 있어요.</p>
                 </motion.div>
               ) : null}
               {!loading && !lastResult ? (
@@ -211,8 +170,8 @@ export function LandingShowcase() {
       <ScrollRevealSection className={styles.section} aria-labelledby="popular-title">
         <div className={styles.headingRow}>
           <div className={styles.heading}>
-            <p>POPULAR PRODUCTS</p>
-            <h2 id="popular-title">많이 찾는 상품</h2>
+            <p>EXPLORE PRODUCTS</p>
+            <h2 id="popular-title">분석 가능한 상품</h2>
           </div>
           <Link href="/products" className={styles.viewAll}>
             전체 상품 보기 <ArrowRight size={17} />
@@ -246,7 +205,7 @@ export function LandingShowcase() {
         </div>
       </ScrollRevealSection>
 
-      <ScrollRevealSection className={styles.section} aria-labelledby="why-title">
+      <ScrollRevealSection id="about" className={styles.section} aria-labelledby="why-title">
         <div className={styles.heading}>
           <p>WHY PROJECT S</p>
           <h2 id="why-title">더 확신 있는 사이즈 선택</h2>

@@ -2,7 +2,7 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useContext, useEffect, useState } from "react";
 import type { MyFitState } from "@/features/my-fit/types";
 import type { UserProfileState } from "@/features/profile/types";
 import { isMyFitSaved, isProfileSaved } from "@/lib/flow-completion";
@@ -11,6 +11,7 @@ import { waitPersistHydration } from "@/lib/wait-flow-persist-hydration";
 import { useFitReferenceStore } from "@/stores/fitReferenceStore";
 import { useFlowBootstrapStore } from "@/stores/flowBootstrapStore";
 import { useUserProfileStore } from "@/stores/userProfileStore";
+import { AuthReadyContext, safeReturnTo, useSessionIdentity } from "@/lib/auth-session";
 
 export type SequentialFlowGateProps = {
   children: ReactNode;
@@ -36,6 +37,8 @@ function firstBlockingPath(
 export function SequentialFlowGate({ children, needs }: SequentialFlowGateProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const identity = useSessionIdentity();
+  const sessionReady = useContext(AuthReadyContext);
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
@@ -58,18 +61,19 @@ export function SequentialFlowGate({ children, needs }: SequentialFlowGateProps)
   const profile = useUserProfileStore((s) => s.profile);
   const myFit = useFitReferenceStore((s) => s.myFit);
 
-  const mismatch = hydrated ? firstBlockingPath(introAcknowledged, profile, myFit, needs) : null;
+  const mismatch = hydrated ? (!identity ? "/login" : firstBlockingPath(introAcknowledged, profile, myFit, needs)) : null;
 
   useEffect(() => {
-    if (!hydrated || !pathname) return;
+    if (!hydrated || !sessionReady || !pathname) return;
 
-    const target = firstBlockingPath(introAcknowledged, profile, myFit, needs);
+    const target = !identity ? "/login" : firstBlockingPath(introAcknowledged, profile, myFit, needs);
     if (!target || target === pathname) return;
 
-    router.replace(target);
-  }, [hydrated, router, pathname, introAcknowledged, profile, myFit, needs]);
+    const destination = safeReturnTo(new URLSearchParams(window.location.search).get("returnTo") || pathname);
+    router.replace(`${target}?returnTo=${encodeURIComponent(destination)}`);
+  }, [hydrated, sessionReady, router, pathname, identity, introAcknowledged, profile, myFit, needs]);
 
-  const blocked = !hydrated || mismatch !== null;
+  const blocked = !hydrated || !sessionReady || mismatch !== null;
 
   if (!hydrated || blocked) {
     return (
@@ -79,5 +83,5 @@ export function SequentialFlowGate({ children, needs }: SequentialFlowGateProps)
     );
   }
 
-  return <>{children}</>;
+  return <div key={identity}>{children}</div>;
 }

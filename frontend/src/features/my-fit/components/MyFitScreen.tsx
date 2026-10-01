@@ -16,6 +16,7 @@ import {
 } from "@/features/my-fit/lib/myFitMapper";
 import { useFitReferenceStore } from "@/features/my-fit/store";
 import { ApiError } from "@/lib/apiClient";
+import { readSessionIdentity, safeReturnTo, useSessionIdentity } from "@/lib/auth-session";
 import type { FitCategory, FitFeeling, FitMeasurement } from "@/features/my-fit/types";
 import styles from "./MyFitScreen.module.css";
 
@@ -61,6 +62,7 @@ function getErrorMessage(error: unknown): string {
 
 export default function MyFitScreen() {
   const router = useRouter();
+  const identity = useSessionIdentity();
   const myFit = useFitReferenceStore((s) => s.myFit);
   const setMyFit = useFitReferenceStore((s) => s.setMyFit);
 
@@ -194,9 +196,9 @@ export default function MyFitScreen() {
       return;
     }
 
-    const invalid = measurements.find((m) => m.sizeCm == null || Number.isNaN(m.sizeCm) || m.feeling == null);
+    const invalid = measurements.find((m) => m.sizeCm == null || !Number.isFinite(m.sizeCm) || m.sizeCm <= 0 || m.sizeCm > 300 || m.feeling == null);
     if (invalid) {
-      setFormError("입력한 실측마다 cm 값과 착용감(작았음/딱맞음/컸음) 선택을 함께 완료해 주세요.");
+      setFormError("실측은 0 초과 300cm 이하로 입력하고, 각 부위의 착용감도 선택해 주세요.");
       return;
     }
 
@@ -217,9 +219,10 @@ export default function MyFitScreen() {
         ? await updateExistingMyFit(nextMyFit)
         : await createNewMyFit(nextMyFit);
       const syncedMyFit = toLocalMyFit(response);
+      if (readSessionIdentity() !== identity) return;
       setMyFit(syncedMyFit);
       setServerMyFitExists(true);
-      router.push("/products");
+      router.push(safeReturnTo(new URLSearchParams(window.location.search).get("returnTo")));
     } catch (error: unknown) {
       setFormError(getErrorMessage(error));
     } finally {
@@ -330,6 +333,7 @@ export default function MyFitScreen() {
               <div key={area} className={styles.tableRow}>
                 <span className={styles.rowArea}>{area}</span>
                 <Input
+                  aria-label={`${area} 실측 (cm)`}
                   inputMode="decimal"
                   value={sizeByArea[area] ?? ""}
                   onChange={(e) =>
@@ -341,6 +345,7 @@ export default function MyFitScreen() {
                   placeholder="cm"
                 />
                 <Select
+                  aria-label={`${area} 착용감`}
                   value={feelingByArea[area] ?? ""}
                   onChange={(e) =>
                     setFeelingByArea((prev) => ({
@@ -370,7 +375,7 @@ export default function MyFitScreen() {
             </p>
           ) : null}
           <GlassCTA type="submit" disabled={isSaving}>
-            {isSaving ? "저장 중..." : serverMyFitExists ? "수정 후 상품 목록으로" : "저장 후 상품 목록으로"}
+            {isSaving ? "저장 중..." : serverMyFitExists ? "수정 후 계속하기" : "저장 후 계속하기"}
           </GlassCTA>
         </div>
       </form>

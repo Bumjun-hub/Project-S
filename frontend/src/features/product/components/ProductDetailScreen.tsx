@@ -53,7 +53,7 @@ export default async function ProductDetailScreen({ productId }: { productId: st
             <p className={styles.price}>{product.priceKrw.toLocaleString("ko-KR")}원</p>
             <p className={styles.description}>{product.description}</p>
             <Link href={`/recommend/${product.id}`} className={styles.ctaPrimary}>
-              내 체형으로 분석하기
+              기준 옷으로 핏 분석하기
             </Link>
           </div>
         </section>
@@ -98,7 +98,7 @@ export default async function ProductDetailScreen({ productId }: { productId: st
             실측 비교 포인트
           </h2>
           <ul className={styles.aiList}>
-            <li>이 상품은 입력한 프로필과 기준 옷 실측을 기반으로 분석됩니다.</li>
+            <li>기준 옷의 부위별 실측과 착용감으로 목표 실측을 계산합니다.</li>
             <li>브랜드 실측 사이즈표와 기준 옷 착용감을 비교합니다.</li>
             <li>분석 결과는 실측 비교 리포트로 저장됩니다.</li>
           </ul>

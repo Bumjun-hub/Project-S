@@ -1,75 +1,64 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+import { Menu, X } from "lucide-react";
+import { AUTH_STORAGE_KEYS, endSession, useSessionIdentity } from "@/lib/auth-session";
 import { isDemoMode } from "@/lib/demo-mode";
 import styles from "./Header.module.css";
 
 const navItems = [
+  { href: "/", label: "Home" },
+  { href: "/#how-it-works", label: "How It Works" },
   { href: "/products", label: "Products" },
-  { href: "/result", label: "Recommendation" },
   { href: "/#about", label: "About" },
   { href: "/history", label: "Analysis History", requiresLogin: true },
 ];
 
-const ACCESS_TOKEN_STORAGE_KEY = "project-s-access-token";
-const MEMBER_EMAIL_STORAGE_KEY = "project-s-member-email";
-const MEMBER_NICKNAME_STORAGE_KEY = "project-s-member-nickname";
-const AUTH_CHANGED_EVENT = "project-s-auth-changed";
-
-type LoginState = {
-  isLoggedIn: boolean;
-  displayName: string;
-};
-
-function readLoginState(): LoginState {
-  if (typeof window === "undefined") return { isLoggedIn: false, displayName: "" };
-
-  const accessToken = window.localStorage.getItem(ACCESS_TOKEN_STORAGE_KEY);
-  const nickname = window.localStorage.getItem(MEMBER_NICKNAME_STORAGE_KEY);
-  const email = window.localStorage.getItem(MEMBER_EMAIL_STORAGE_KEY);
-
-  return {
-    isLoggedIn: Boolean(accessToken),
-    displayName: nickname || email || "",
-  };
-}
-
 export function Header() {
   const pathname = usePathname();
-  const [loginState, setLoginState] = useState<LoginState>({ isLoggedIn: false, displayName: "" });
-  const isActive = (href: string) => href !== "/#about" && (pathname === href || pathname.startsWith(`${href}/`));
+  const router = useRouter();
+  const identity = useSessionIdentity();
+  const loginState = { isLoggedIn: Boolean(identity), displayName: identity ? localStorage.getItem(AUTH_STORAGE_KEYS.nickname) || identity : "" };
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuButton = useRef<HTMLButtonElement>(null);
+  const isEditorial = true;
+  const isActive = (href: string) => !href.includes("#") && (pathname === href || (href !== "/" && pathname.startsWith(`${href}/`)));
 
   useEffect(() => {
-    const syncLoginState = () => setLoginState(readLoginState());
-
-    syncLoginState();
-    window.addEventListener("storage", syncLoginState);
-    window.addEventListener(AUTH_CHANGED_EVENT, syncLoginState);
-
-    return () => {
-      window.removeEventListener("storage", syncLoginState);
-      window.removeEventListener(AUTH_CHANGED_EVENT, syncLoginState);
+    setMenuOpen(false);
+  }, [pathname, identity]);
+  useEffect(() => {
+    if (!menuOpen) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") { setMenuOpen(false); menuButton.current?.focus(); }
     };
-  }, [pathname]);
+    window.addEventListener("keydown", closeOnEscape);
+    return () => {
+      window.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [menuOpen]);
 
   const handleLogout = () => {
-    window.localStorage.removeItem(ACCESS_TOKEN_STORAGE_KEY);
-    window.localStorage.removeItem(MEMBER_EMAIL_STORAGE_KEY);
-    window.localStorage.removeItem(MEMBER_NICKNAME_STORAGE_KEY);
-    window.dispatchEvent(new Event(AUTH_CHANGED_EVENT));
+    endSession();
+    router.replace("/");
   };
 
   return (
-    <header className={styles.header}>
+    <header className={`${styles.header} ${isEditorial ? styles.landingHeader : ""}`}>
       <div className={styles.inner}>
         <Link href="/" className={styles.logo} aria-label="Project S 홈">Project S</Link>
-        <nav className={styles.nav} aria-label="주요 메뉴">
+        <button ref={menuButton} type="button" className={styles.menuToggle} aria-label={menuOpen ? "메뉴 닫기" : "메뉴 열기"}
+          aria-expanded={menuOpen} aria-controls="main-navigation" onClick={() => setMenuOpen((open) => !open)}>
+          {menuOpen ? <X size={22} aria-hidden="true" /> : <Menu size={22} aria-hidden="true" />}
+        </button>
+        <nav id="main-navigation" className={`${styles.nav} ${menuOpen ? styles.menuOpen : ""}`} aria-label="주요 메뉴">
           {navItems
             .filter((item) => !item.requiresLogin || loginState.isLoggedIn)
             .map((item) => (
-              <Link key={item.href} href={item.href} className={isActive(item.href) ? styles.active : undefined}>
+              <Link key={item.href} href={item.href} aria-current={isActive(item.href) ? "page" : undefined}
+                className={isActive(item.href) ? styles.active : undefined} onClick={() => setMenuOpen(false)}>
                 {item.label}
               </Link>
             ))}
@@ -82,8 +71,8 @@ export function Header() {
             </>
           ) : (
             <>
-              <Link href="/login" className={styles.login}>Login</Link>
-              <Link href="/signup" className={styles.signup}>Sign up</Link>
+              <Link href="/login" className={styles.login}>{isEditorial ? "Log in" : "Login"}</Link>
+              <Link href="/signup" className={styles.signup}>{isEditorial ? "Find my fit" : "Sign up"}</Link>
             </>
           )}
         </div>

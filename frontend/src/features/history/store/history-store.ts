@@ -27,7 +27,7 @@ export const useAnalysisHistoryStore = create<AnalysisHistoryStore>()(
           lastResult: r,
           history: [r, ...s.history.filter((h) => h.id !== r.id)].slice(0, 40),
         })),
-      clearHistory: () => set({ history: [] }),
+      clearHistory: () => set({ history: [], lastResult: null }),
     }),
     {
       name: "project-s-analysis-history",

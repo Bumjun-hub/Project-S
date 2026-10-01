@@ -4,8 +4,7 @@ import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { type FormEvent, useState } from "react";
 import { login, LoginApiError } from "@/features/auth/api";
-import { isDemoMode } from "@/lib/demo-mode";
-import { useFlowBootstrapStore } from "@/stores/flowBootstrapStore";
+import { safeReturnTo, startSession } from "@/lib/auth-session";
 import { Button } from "@/components/common/Button";
 import { Input } from "@/components/common/Input";
 import styles from "./LoginForm.module.css";
@@ -17,11 +16,6 @@ type FormValues = {
 
 type FormErrors = Partial<Record<keyof FormValues, string>>;
 
-const ACCESS_TOKEN_STORAGE_KEY = "project-s-access-token";
-const TOKEN_TYPE_STORAGE_KEY = "project-s-token-type";
-const MEMBER_EMAIL_STORAGE_KEY = "project-s-member-email";
-const MEMBER_NICKNAME_STORAGE_KEY = "project-s-member-nickname";
-const AUTH_CHANGED_EVENT = "project-s-auth-changed";
 const initialValues: FormValues = { email: "", password: "" };
 
 function validate(values: FormValues): FormErrors {
@@ -57,13 +51,8 @@ export function LoginForm() {
       { email: values.email, password: values.password },
       {
         onSuccess: (data) => {
-          if (isDemoMode) useFlowBootstrapStore.getState().acknowledgeIntro();
-          window.localStorage.setItem(ACCESS_TOKEN_STORAGE_KEY, data.accessToken);
-          window.localStorage.setItem(TOKEN_TYPE_STORAGE_KEY, data.tokenType);
-          window.localStorage.setItem(MEMBER_EMAIL_STORAGE_KEY, data.email);
-          window.localStorage.setItem(MEMBER_NICKNAME_STORAGE_KEY, data.nickname);
-          window.dispatchEvent(new Event(AUTH_CHANGED_EVENT));
-          router.push("/");
+          startSession(data);
+          router.push(safeReturnTo(new URLSearchParams(window.location.search).get("returnTo")));
         },
       },
     );
@@ -74,7 +63,7 @@ export function LoginForm() {
   return (
     <form className={styles.form} onSubmit={handleSubmit} noValidate>
       {mutation.isSuccess && <p className={`${styles.message} ${styles.success}`}>로그인이 완료되었습니다.</p>}
-      {mutation.isError && <p className={`${styles.message} ${styles.failure}`}>{requestError}</p>}
+      {mutation.isError && <p role="alert" className={`${styles.message} ${styles.failure}`}>{requestError}</p>}
 
       <label className={styles.field}>
         <span className={styles.label}>이메일</span>
@@ -84,9 +73,10 @@ export function LoginForm() {
           value={values.email}
           onChange={(event) => updateValue("email", event.target.value)}
           aria-invalid={Boolean(errors.email)}
+          aria-describedby={errors.email ? "login-email-error" : undefined}
           disabled={mutation.isPending}
         />
-        {errors.email && <span className={styles.error}>{errors.email}</span>}
+        {errors.email && <span id="login-email-error" className={styles.error}>{errors.email}</span>}
       </label>
 
       <label className={styles.field}>
@@ -97,9 +87,10 @@ export function LoginForm() {
           value={values.password}
           onChange={(event) => updateValue("password", event.target.value)}
           aria-invalid={Boolean(errors.password)}
+          aria-describedby={errors.password ? "login-password-error" : undefined}
           disabled={mutation.isPending}
         />
-        {errors.password && <span className={styles.error}>{errors.password}</span>}
+        {errors.password && <span id="login-password-error" className={styles.error}>{errors.password}</span>}
       </label>
 
       <Button className={styles.submit} type="submit" disabled={mutation.isPending}>

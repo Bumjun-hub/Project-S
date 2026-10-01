@@ -3,7 +3,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
+import { Pagination } from "@/components/common/Pagination";
 import { EmptyState } from "@/components/common/EmptyState";
 import { FlowFooterNav } from "@/components/common/FlowFooterNav";
 import { FlowStepCaption } from "@/components/common/FlowStepCaption";
@@ -12,7 +13,6 @@ import { Skeleton } from "@/components/common/Skeleton";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { useProductsQuery } from "@/features/product/api/use-products-query";
 import { getProductImageSrc } from "@/features/product/lib/product-image";
-import type { Product } from "@/features/product/types";
 import styles from "./ProductListScreen.module.css";
 
 type CategoryFilter = "all" | "상의" | "하의" | "아우터";
@@ -24,29 +24,17 @@ const FILTER_OPTIONS: Array<{ value: CategoryFilter; label: string }> = [
   { value: "아우터", label: "아우터" },
 ];
 
-function matchesSearch(p: Product, q: string) {
-  const t = q.trim().toLowerCase();
-  if (t === "") return true;
-  return (
-    p.name.toLowerCase().includes(t) ||
-    p.brand.toLowerCase().includes(t) ||
-    p.category.toLowerCase().includes(t) ||
-    p.description.toLowerCase().includes(t)
-  );
-}
-
 export default function ProductListScreen() {
-  const { data, isPending, isError } = useProductsQuery();
   const [category, setCategory] = useState<CategoryFilter>("all");
   const [search, setSearch] = useState("");
-
-  const filtered = useMemo(() => {
-    if (!data) return [];
-    return data.filter((p) => {
-      const catOk = category === "all" || p.category === category;
-      return catOk && matchesSearch(p, search);
-    });
-  }, [data, category, search]);
+  const [page, setPage] = useState(0);
+  const [searchQuery, setSearchQuery] = useState("");
+  useEffect(() => {
+    const timer = setTimeout(() => { setPage(0); setSearchQuery(search.trim()); }, 300);
+    return () => clearTimeout(timer);
+  }, [search]);
+  const { data, isPending, isError, refetch } = useProductsQuery({ page, category, search: searchQuery });
+  const filtered = data?.content ?? [];
 
   return (
     <PageContainer maxWidth={1100}>
@@ -54,27 +42,26 @@ export default function ProductListScreen() {
       <div className={styles.page}>
         <header>
           <h1 style={{ marginTop: 0, marginBottom: "0.35rem" }}>상품 탐색</h1>
-          <p className={styles.metaHint}>TanStack Query + Product API · 실측 사이즈표 기반 분석</p>
+          <p className={styles.metaHint}>상품을 둘러보고, 기준 옷 실측과 사이즈표를 비교해 보세요.</p>
         </header>
 
         <section className={styles.intro} aria-label="페이지 안내">
           <p className={styles.introText}>
-            내 체형 정보와 기준 옷을 바탕으로 핏을 분석할 상품을 선택하세요.
+            상품 탐색은 누구나 가능합니다. 핏 분석을 시작하면 로그인과 기준 옷 등록을 안내합니다.
           </p>
         </section>
 
         <div className={styles.toolbar}>
-          <div className={styles.filterRow} role="tablist" aria-label="카테고리 필터">
+          <div className={styles.filterRow} role="group" aria-label="카테고리 필터">
             {FILTER_OPTIONS.map((opt) => {
               const active = category === opt.value;
               return (
                 <button
                   key={opt.value}
                   type="button"
-                  role="tab"
-                  aria-selected={active}
+                  aria-pressed={active}
                   className={`${styles.filterPill}${active ? ` ${styles.filterPillActive}` : ""}`}
-                  onClick={() => setCategory(opt.value)}
+                  onClick={() => { setCategory(opt.value); setPage(0); }}
                 >
                   {opt.label}
                 </button>
@@ -88,6 +75,7 @@ export default function ProductListScreen() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               aria-label="상품 검색"
+              maxLength={100}
             />
           </div>
         </div>
@@ -108,21 +96,17 @@ export default function ProductListScreen() {
         ) : null}
 
         {isError ? (
-          <EmptyState title="목록을 불러오지 못했습니다" description="잠시 후 다시 시도해 주세요." />
+          <EmptyState title="목록을 불러오지 못했습니다" description="잠시 후 다시 시도해 주세요."><button type="button" onClick={() => void refetch()}>다시 시도</button></EmptyState>
         ) : null}
 
-        {!isPending && !isError && data && data.length === 0 ? (
-          <EmptyState title="상품이 없습니다" />
-        ) : null}
-
-        {!isPending && !isError && data && data.length > 0 && filtered.length === 0 ? (
+        {!isPending && !isError && data && filtered.length === 0 ? (
           <EmptyState
             title="조건에 맞는 상품이 없습니다"
             description="필터나 검색어를 바꿔 다시 시도해 주세요."
           />
         ) : null}
 
-        {!isPending && filtered.length > 0 ? (
+        {!isPending && !isError && filtered.length > 0 ? (
           <ul className={styles.grid} style={{ listStyle: "none", padding: 0, margin: 0 }}>
             {filtered.map((p) => (
               <li key={p.id} className={styles.card}>
@@ -162,6 +146,7 @@ export default function ProductListScreen() {
           </ul>
         ) : null}
 
+        <Pagination page={page} totalPages={data?.totalPages ?? 0} onChange={setPage} busy={isPending} />
         <FlowFooterNav
           items={[
             { href: "/my-fit", label: "기준 옷 실측" },
