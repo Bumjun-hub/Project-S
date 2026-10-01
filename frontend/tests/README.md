@@ -10,7 +10,87 @@ npm run build
 
 단위 테스트 8개는 토큰 만료/잘못된 토큰/SSR 안전성, 서버 이력 ID·시각·비교값 매핑, 페이지 경계,
 세션 초기화 중 공개 상품 요청 유지와 사용자 전환 시 개인 캐시 제거를 확인합니다.
-현재 브라우저 검증은 수동이며 자동 E2E 테스트가 구성된 것은 아닙니다.
+브라우저 자동 E2E 테스트는 아래의 격리된 데모 환경에서 실행합니다.
+
+## 브라우저 자동 테스트
+
+최초 설치와 실행:
+
+```powershell
+npm ci
+npx playwright install chromium
+npm run test:e2e
+```
+
+8개 시나리오를 Chromium 데스크톱(1280×900)과 모바일 화면(390×844)에서 각각 실행합니다.
+모바일은 Chromium의 모바일 에뮬레이션이며 실제 기기나 Safari 검증은 아닙니다.
+
+1. 비로그인 상품 조회·검색·빈 결과·없는 상품 처리
+2. 비로그인 사용자의 보호 화면 접근 차단
+3. 로그인 입력 검증과 외부 `returnTo` 이동 차단
+4. 잘못된 프로필·기준 옷 실측 입력 차단
+5. 상품에서 로그인·프로필·기준 옷·추천 결과 복귀, 피드백과 기록 새로고침·다시보기
+6. 로그아웃·다른 계정 로그인 시 이전 개인 기록과 입력 제거
+7. 다른 탭에서 계정 전환 시 기존 탭의 프로필 입력 초기화
+8. Analysis History 메뉴 이동, 모바일 Escape와 포커스 복귀·가로 넘침 검사
+
+`playwright.config.ts`는 테스트 서버를 `127.0.0.1:3100`에 직접 시작하며 기존 서버는 재사용하지 않습니다.
+데모 환경 변수는 테스트 서버 프로세스에만 전달하고 `.env.local`은 변경하지 않습니다.
+빌드는 `.next-e2e`에 생성되어 일반 서버의 `.next`와 분리됩니다. 테스트가 끝나면 테스트 서버를 종료합니다.
+TypeScript 설정도 `tsconfig.e2e.json`을 별도로 사용하고, Next.js가 바꾸는 `next-env.d.ts`의 생성 경로는 빌드 후 원래대로 복원합니다.
+각 테스트는 새 브라우저 컨텍스트를 사용하며, 모든 탭의 `/api/` 호출을 차단하고 호출 시 실패 처리합니다.
+이 테스트는 프론트의 데모 사용자 흐름 검증이며 실제 JWT 인증·DB 저장 검증을 대체하지 않습니다.
+
+결과 보고서:
+
+```powershell
+npm run test:e2e:report
+```
+
+실패 시 스크린샷과 trace를 남기고, 정상 흐름의 분석 기록 화면도 보고서에 첨부합니다.
+`playwright-report/`, `test-results/`, `.next-e2e/`는 Git에서 제외됩니다.
+서버 자동 시작 구성은 [Playwright 공식 문서](https://playwright.dev/docs/test-webserver)를 참고했습니다.
+
+2026-10-01 최종 실행 결과: 16개 모두 통과(재시도 0회), 단위 테스트 8개와 일반 TypeScript 검사도 통과했습니다.
+첫 실행에서 다른 탭의 계정 전환 후 기존 프로필 입력이 남는 문제를 재현했습니다.
+새 계정을 React에 알리기 전에 개인 상태를 초기화하도록 세션 이벤트 순서를 수정하고,
+같은 테스트를 데스크톱·모바일에서 다시 실행하여 통과를 확인했습니다.
+
+## GitHub Actions 자동 검증
+
+프로젝트 루트의 `.github/workflows/ci.yml`에서 `Project S CI`를 구성했습니다.
+`main` 푸시, Pull Request, 수동 실행 시 프론트와 백엔드 검사를 독립적으로 실행합니다.
+프론트 검사는 `npm ci` → 단위 테스트 → 일반 프로덕션 빌드 → 타입 검사 → Chromium 설치 → E2E 순서입니다.
+GitHub Secrets나 실제 DB는 필요하지 않습니다. E2E가 사용하는 데모 설정은 별도 서버 프로세스에만 적용됩니다.
+
+GitHub의 Actions 탭에서 해당 실행을 열면 두 검사 결과를 확인할 수 있습니다.
+실패 화면·trace를 포함한 `frontend-playwright-report`는 Artifacts에서 다운로드할 수 있고 7일간 보관됩니다.
+워크플로뿐 아니라 이번 E2E 설정·테스트·의존성 잠금 파일도 함께 커밋해야 실행할 수 있습니다.
+실제 GitHub 실행 확인은 커밋을 푸시한 뒤 진행하며, 이 설정만으로 자동 배포나 병합 차단이 활성화되지는 않습니다.
+자세한 설정은 [CI 설명](../../.github/README.md)에 있습니다.
+
+## 의존성 보안 업데이트 (2026-10-01)
+
+Next.js를 `15.5.15`에서 `15.5.27`로 업데이트했습니다. 메이저 버전은 15를 유지합니다.
+관련 하위 의존성은 `sharp 0.35.5`, `nanoid 3.3.19`로 갱신했습니다.
+Next.js 15가 PostCSS의 이전 버전을 고정하여 설치하므로 `package.json`의 `overrides.next.postcss`에
+같은 8.x 계열의 패치 버전 `8.5.28`을 지정했습니다. Next.js가 안전한 PostCSS를 직접 사용하게 되면
+이 임시 override의 필요성을 다시 검토해야 합니다.
+
+패치 근거: [Next.js Windows 보안 공지](https://github.com/vercel/next.js/security/advisories/GHSA-p293-qw3h-jr36),
+[PostCSS 보안 공지](https://github.com/postcss/postcss/security/advisories/GHSA-fxqj-rqcc-2cmp).
+`npm audit fix --force`나 Next.js 16 메이저 업데이트는 적용하지 않았습니다.
+
+```powershell
+npm ci
+npm audit --registry=https://registry.npmjs.org
+```
+
+갱신한 잠금 파일로 새로 설치한 뒤 보안 검사와 위의 단위 테스트·빌드·타입 검사·E2E를 실행합니다.
+2026-10-01 업데이트 후 재검증: `npm ci` 성공, `npm audit` 경고 0건,
+단위 테스트 8개와 E2E 16개 모두 통과(재시도 0회), 일반 빌드 및 TypeScript 검사 통과.
+보안 검사는 실행 당시 npm advisory 기준이며, 애플리케이션 전체의 보안을 보장하는 검사는 아닙니다.
+현재 CI의 테스트·빌드와는 별도의 수동 검사입니다.
 
 ## 브라우저 검증 시나리오 (2026-10-01 확인)
 

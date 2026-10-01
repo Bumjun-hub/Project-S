@@ -71,10 +71,17 @@ export function synchronizeSession() {
 }
 
 function subscribe(listener: () => void) {
-  window.addEventListener("storage", listener);
+  // Reset the previous account's state before React observes the new identity.
+  // Otherwise the identity-keyed form can mount with the old store values.
+  const onStorage = (event: StorageEvent) => {
+    if (event.key !== null && !event.key.startsWith("project-s-")) return;
+    synchronizeSession();
+    listener();
+  };
+  window.addEventListener("storage", onStorage);
   window.addEventListener(AUTH_CHANGED_EVENT, listener);
   return () => {
-    window.removeEventListener("storage", listener);
+    window.removeEventListener("storage", onStorage);
     window.removeEventListener(AUTH_CHANGED_EVENT, listener);
   };
 }

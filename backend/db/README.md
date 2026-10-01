@@ -58,6 +58,15 @@ psql -h localhost -U postgres -d project_s -v ON_ERROR_STOP=1 -f db/migrations/V
 검증 당시 로컬 DB의 loopback 인증 방식은 기존 `trust` 설정이었으며 변경하지 않았습니다.
 이는 운영용 인증 구성을 검증한 것이 아닙니다. 운영 배포에는 비밀번호 인증과 DB 접근 제한을 별도로 설정해야 합니다.
 
+## GitHub Actions 테스트
+
+루트의 `.github/workflows/ci.yml`은 Java 17과 Gradle Wrapper로 `./gradlew --no-daemon build`를 실행합니다.
+테스트는 `src/test/resources/application.properties`의 H2 임시 DB와 `test` 프로필을 사용합니다.
+실제 PostgreSQL 서버, 운영 비밀번호, GitHub Secrets는 필요하지 않습니다.
+테스트 및 실행 JAR 빌드를 검사하며 배포하거나 운영 DB 마이그레이션을 실행하지 않습니다.
+백엔드 테스트 보고서는 `backend-test-reports` artifact로 7일간 보관합니다.
+실제 DB 검증은 위 PostgreSQL 검증 절차로 별도 수행합니다.
+
 ## API 변경
 
 - 추천 POST의 `data.historyId`, `data.createdAt`은 서버에서 저장한 이력 값입니다.

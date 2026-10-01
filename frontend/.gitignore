@@ -1,0 +1,4 @@
+# Generated browser-test artifacts can include screenshots and storage data.
+.next-e2e/
+playwright-report/
+test-results/
