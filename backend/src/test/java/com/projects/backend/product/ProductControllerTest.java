@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,6 +30,34 @@ class ProductControllerTest {
 
 	@Autowired
 	private MockMvc mockMvc;
+    @Autowired
+    private jakarta.persistence.EntityManagerFactory entityManagerFactory;
+
+    @Test
+    void paged_products_are_public_filtered_and_do_not_load_size_collections() throws Exception {
+        var statistics = entityManagerFactory.unwrap(org.hibernate.SessionFactory.class).getStatistics();
+        statistics.clear();
+        mockMvc.perform(get(PRODUCTS_URL + "/page?size=2&page=0"))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.data.content", hasSize(2)))
+            .andExpect(jsonPath("$.data.content[0].sizes", hasSize(0)));
+        assertTrue(statistics.getPrepareStatementCount() <= 2, "Listing must use at most one page query and one count query");
+        assertTrue(statistics.getCollectionLoadCount() == 0, "Listing must not load measurements");
+        mockMvc.perform(get(PRODUCTS_URL + "/page?category=TOP&search=oxford"))
+            .andExpect(status().isOk());
+        mockMvc.perform(get(PRODUCTS_URL + "/page?category=상의&search=옥스포드"))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.data.content", hasSize(1)))
+            .andExpect(jsonPath("$.data.content[0].id").value("p-oxford-01"));
+        mockMvc.perform(get(PRODUCTS_URL + "/page?category=하의&search=옥스포드"))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.data.content", hasSize(0)));
+    }
+
+    @Test
+    void invalid_product_pagination_returns_400() throws Exception {
+        for (String query : new String[] {"page=-1", "size=0", "size=101", "category=INVALID", "page=nope"}) {
+            mockMvc.perform(get(PRODUCTS_URL + "/page?" + query))
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("INVALID_INPUT"));
+        }
+    }
 
 	@Test
 	void get_products_success_without_token() throws Exception {

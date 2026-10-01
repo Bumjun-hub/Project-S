@@ -2,8 +2,10 @@ package com.projects.backend.recommendation.dto;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 import com.projects.backend.recommendation.entity.RecommendationHistory;
+import com.projects.backend.recommendation.entity.FitFeedback;
 
 public record RecommendationHistoryResponse(
 	Long id,
@@ -15,20 +17,24 @@ public record RecommendationHistoryResponse(
 	int matchScore,
 	BigDecimal sizeScore,
 	String reason,
-	LocalDateTime createdAt
+	FitFeedback feedback,
+	LocalDateTime createdAt,
+    String calculatorVersion,
+    List<MeasurementComparisonResponse> comparisons
 ) {
 	public static RecommendationHistoryResponse from(RecommendationHistory history) {
 		return new RecommendationHistoryResponse(
 			history.getId(),
 			history.getProduct().getId(),
-			history.getProduct().getCode(),
-			history.getProduct().getName(),
-			history.getProduct().getBrand(),
+			history.getProductCodeSnapshot(),
+			history.getProductNameSnapshot(),
+			history.getBrandSnapshot(),
 			history.getRecommendedSize(),
 			history.getMatchScore(),
 			history.getSizeScore(),
 			history.getReason(),
-			history.getCreatedAt()
+			history.getFeedback(),
+			history.getCreatedAt(), history.getCalculatorVersion(), history.getComparisons()
 		);
 	}
 }

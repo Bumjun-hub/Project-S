@@ -6,6 +6,9 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.not;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -66,6 +69,8 @@ class RecommendationIntegrationTest {
 
 	@Autowired
 	private ProductRepository productRepository;
+    @Autowired
+    private jakarta.persistence.EntityManagerFactory entityManagerFactory;
 
 	@BeforeEach
 	void setUp() {
@@ -190,6 +195,143 @@ class RecommendationIntegrationTest {
 		signUp(email);
 		return loginAndExtractAccessToken(email);
 	}
+
+    @Test
+    void recommendation_feedback_and_history_use_same_saved_id_and_comparisons() throws Exception {
+        String token = prepareUser("feedback-flow@example.com");
+        createBodyProfile(token);
+        createTopMyFit(token);
+        var created = objectMapper.readTree(recommend(token, "feedback-flow-key")).get("data");
+        long id = created.get("historyId").asLong();
+        assertTrue(id > 0);
+        assertTrue(created.get("createdAt").asText().length() > 0);
+
+        mockMvc.perform(patch(RECOMMENDATION_HISTORY_URL + "/" + id + "/feedback")
+            .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+            .contentType(MediaType.APPLICATION_JSON).content("{\"feedback\":\"GOOD\"}"))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.data.id").value(id))
+            .andExpect(jsonPath("$.data.feedback").value("GOOD"));
+
+        var history = objectMapper.readTree(mockMvc.perform(get(RECOMMENDATION_HISTORY_URL + "/page")
+            .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+            .andExpect(status().isOk()).andReturn().getResponse().getContentAsString()).get("data");
+        assertEquals(1, history.get("totalElements").asInt());
+        var record = history.get("content").get(0);
+        assertEquals(id, record.get("id").asLong());
+        assertEquals("GOOD", record.get("feedback").asText());
+        assertEquals(created.get("comparisons"), record.get("comparisons"));
+        assertEquals(created.get("createdAt"), record.get("createdAt"));
+        assertEquals("measurements-v1", record.get("calculatorVersion").asText());
+    }
+
+    @Test
+    void another_member_cannot_read_or_update_an_owners_history() throws Exception {
+        String owner = prepareUser("history-owner@example.com");
+        createBodyProfile(owner);
+        createTopMyFit(owner);
+        long id = objectMapper.readTree(recommend(owner, "owner-run")).at("/data/historyId").asLong();
+        String other = prepareUser("history-other@example.com");
+        mockMvc.perform(get(RECOMMENDATION_HISTORY_URL + "/page")
+            .header(HttpHeaders.AUTHORIZATION, "Bearer " + other))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.data.content", hasSize(0)));
+        mockMvc.perform(patch(RECOMMENDATION_HISTORY_URL + "/" + id + "/feedback")
+            .header(HttpHeaders.AUTHORIZATION, "Bearer " + other)
+            .contentType(MediaType.APPLICATION_JSON).content("{\"feedback\":\"LARGE\"}"))
+            .andExpect(status().isNotFound());
+        assertEquals(0, jdbcTemplate.queryForObject("select count(*) from recommendation_histories where feedback is not null", Integer.class));
+    }
+
+    @Test
+    void retrying_the_same_request_does_not_create_duplicate_history() throws Exception {
+        String token = prepareUser("idempotent@example.com");
+        createBodyProfile(token);
+        createTopMyFit(token);
+        var first = objectMapper.readTree(recommend(token, "same-request"));
+        var second = objectMapper.readTree(recommend(token, "same-request"));
+        assertEquals(first.get("data"), second.get("data"));
+        assertEquals(1, jdbcTemplate.queryForObject("select count(*) from recommendation_histories", Integer.class));
+        mockMvc.perform(post(RECOMMENDATION_URL).header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+            .header("Idempotency-Key", "same-request").contentType(MediaType.APPLICATION_JSON)
+            .content(recommendationRequestJson("p-knit-02")))
+            .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("INVALID_INPUT"));
+    }
+
+    @Test
+    void concurrent_retries_store_one_record() throws Exception {
+        String token = prepareUser("concurrent@example.com");
+        createBodyProfile(token);
+        createTopMyFit(token);
+        var executor = java.util.concurrent.Executors.newFixedThreadPool(2);
+        try {
+            var first = executor.submit(() -> recommend(token, "concurrent-run"));
+            var second = executor.submit(() -> recommend(token, "concurrent-run"));
+            assertEquals(objectMapper.readTree(first.get(15, java.util.concurrent.TimeUnit.SECONDS)).get("data"),
+                objectMapper.readTree(second.get(15, java.util.concurrent.TimeUnit.SECONDS)).get("data"));
+            assertEquals(1, jdbcTemplate.queryForObject("select count(*) from recommendation_histories", Integer.class));
+        } finally {
+            executor.shutdownNow();
+        }
+    }
+
+    @Test
+    void history_snapshot_survives_product_and_myfit_edits() throws Exception {
+        String token = prepareUser("snapshot@example.com");
+        createBodyProfile(token);
+        createTopMyFit(token);
+        var created = objectMapper.readTree(recommend(token, "snapshot-run")).get("data");
+        String originalName = jdbcTemplate.queryForObject("select name from products where code = 'p-oxford-01'", String.class);
+        try {
+            jdbcTemplate.update("update products set name = 'renamed product' where code = 'p-oxford-01'");
+            jdbcTemplate.update("update my_fit_measurements set size_cm = 99");
+            var record = objectMapper.readTree(mockMvc.perform(get(RECOMMENDATION_HISTORY_URL)
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)).andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString()).at("/data/0");
+            assertEquals(created.get("productName"), record.get("productName"));
+            assertEquals(created.get("comparisons"), record.get("comparisons"));
+            assertEquals(created.get("reason").asText(), record.get("reason").asText());
+        } finally {
+            jdbcTemplate.update("update products set name = ? where code = 'p-oxford-01'", originalName);
+        }
+    }
+
+    @Test
+    void paged_history_is_latest_first_and_rejects_invalid_page_sizes() throws Exception {
+        String token = prepareUser("paged-history@example.com");
+        createBodyProfile(token);
+        createTopMyFit(token);
+        long firstId = objectMapper.readTree(recommend(token, "page-run-one")).at("/data/historyId").asLong();
+        long secondId = objectMapper.readTree(recommend(token, "page-run-two")).at("/data/historyId").asLong();
+        var statistics = entityManagerFactory.unwrap(org.hibernate.SessionFactory.class).getStatistics();
+        statistics.clear();
+        mockMvc.perform(get(RECOMMENDATION_HISTORY_URL + "/page?size=1&page=0").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.data.totalElements").value(2))
+            .andExpect(jsonPath("$.data.content[0].id").value(secondId));
+        assertTrue(statistics.getPrepareStatementCount() <= 3, "History uses member lookup, one joined page query and one count query");
+        assertEquals(0, statistics.getCollectionLoadCount(), "History must not fetch current product measurement collections");
+        mockMvc.perform(get(RECOMMENDATION_HISTORY_URL + "/page?size=1&page=1").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.data.content[0].id").value(firstId));
+        mockMvc.perform(get(RECOMMENDATION_HISTORY_URL + "/page?size=101").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+            .andExpect(status().isBadRequest());
+        mockMvc.perform(get(RECOMMENDATION_HISTORY_URL + "/page")).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void invalid_feedback_id_or_enum_is_a_client_error_not_a_server_error() throws Exception {
+        String token = prepareUser("invalid-feedback@example.com");
+        mockMvc.perform(patch(RECOMMENDATION_HISTORY_URL + "/rec-invalid/feedback").header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+            .contentType(MediaType.APPLICATION_JSON).content("{\"feedback\":\"GOOD\"}"))
+            .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("INVALID_INPUT"));
+        mockMvc.perform(patch(RECOMMENDATION_HISTORY_URL + "/1/feedback").header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+            .contentType(MediaType.APPLICATION_JSON).content("{\"feedback\":\"UNKNOWN\"}"))
+            .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("INVALID_INPUT"));
+    }
+
+    private String recommend(String token, String key) throws Exception {
+        return mockMvc.perform(post(RECOMMENDATION_URL).header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+            .header("Idempotency-Key", key).contentType(MediaType.APPLICATION_JSON)
+            .content(recommendationRequestJson("p-oxford-01")))
+            .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+    }
 
 	private void signUp(String email) throws Exception {
 		mockMvc.perform(post(SIGN_UP_URL)

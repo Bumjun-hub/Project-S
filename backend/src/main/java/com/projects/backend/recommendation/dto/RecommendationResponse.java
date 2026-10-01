@@ -2,11 +2,13 @@ package com.projects.backend.recommendation.dto;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.time.LocalDateTime;
+import com.projects.backend.recommendation.entity.RecommendationHistory;
 
-import com.projects.backend.product.entity.Product;
-import com.projects.backend.recommendation.calculator.RecommendationResult;
 
 public record RecommendationResponse(
+    Long historyId,
+    LocalDateTime createdAt,
 	String productCode,
 	String productName,
 	String brand,
@@ -17,18 +19,12 @@ public record RecommendationResponse(
 	List<MeasurementComparisonResponse> comparisons
 ) {
 
-	public static RecommendationResponse of(Product product, RecommendationResult result) {
+	public static RecommendationResponse from(RecommendationHistory history) {
 		return new RecommendationResponse(
-			product.getCode(),
-			product.getName(),
-			product.getBrand(),
-			result.recommendedSize(),
-			result.matchScore(),
-			result.sizeScore(),
-			result.reason(),
-			result.comparisons().stream()
-				.map(MeasurementComparisonResponse::from)
-				.toList()
+            history.getId(), history.getCreatedAt(),
+            history.getProductCodeSnapshot(), history.getProductNameSnapshot(), history.getBrandSnapshot(),
+            history.getRecommendedSize(), history.getMatchScore(), history.getSizeScore(), history.getReason(),
+            history.getComparisons()
 		);
 	}
 }

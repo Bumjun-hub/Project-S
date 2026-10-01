@@ -1,6 +1,9 @@
 package com.projects.backend.recommendation.service;
 
 import java.util.List;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import com.projects.backend.common.response.PageResponse;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,6 +29,7 @@ import com.projects.backend.recommendation.calculator.RecommendationInput.Produc
 import com.projects.backend.recommendation.calculator.RecommendationInput.ProductSizeInput;
 import com.projects.backend.recommendation.calculator.RecommendationResult;
 import com.projects.backend.recommendation.dto.RecommendationCreateRequest;
+import com.projects.backend.recommendation.dto.RecommendationFeedbackRequest;
 import com.projects.backend.recommendation.dto.RecommendationHistoryResponse;
 import com.projects.backend.recommendation.dto.RecommendationResponse;
 import com.projects.backend.recommendation.entity.RecommendationHistory;
@@ -55,26 +59,62 @@ public class RecommendationService {
 	}
 
 	@Transactional
-	public RecommendationResponse recommend(String email, RecommendationCreateRequest request) {
-		Member member = findMemberByEmail(email);
+	public RecommendationResponse recommend(String email, RecommendationCreateRequest request, String requestKey) {
+        if (requestKey != null && !requestKey.matches("[A-Za-z0-9-]{1,64}")) {
+            throw new BusinessException(ErrorCode.INVALID_INPUT);
+        }
+        Member member = memberRepository.findByEmailForUpdate(email)
+            .orElseThrow(() -> new BusinessException(ErrorCode.UNAUTHORIZED));
+        if (requestKey != null) {
+            var previous = recommendationHistoryRepository.findByMemberAndRequestKey(member, requestKey);
+            if (previous.isPresent()) {
+                if (!previous.get().getProductCodeSnapshot().equals(request.productCode().trim())) {
+                    throw new BusinessException(ErrorCode.INVALID_INPUT);
+                }
+                return RecommendationResponse.from(previous.get());
+            }
+        }
 		MyFit myFit = findMyFitByMember(member);
 		Product product = findProductByCode(request.productCode().trim());
 		MyFitEntry myFitEntry = findMyFitEntry(myFit, mapToFitCategory(product.getCategory()));
 
 		RecommendationInput input = toRecommendationInput(myFitEntry, product.getSizes());
 		RecommendationResult result = recommendationCalculator.calculate(input);
-		recommendationHistoryRepository.save(RecommendationHistory.create(member, product, result));
-
-		return RecommendationResponse.of(product, result);
+        RecommendationHistory history = RecommendationHistory.create(member, product, result);
+        history.assignRequestKey(requestKey);
+        return RecommendationResponse.from(recommendationHistoryRepository.save(history));
 	}
 
 	@Transactional(readOnly = true)
 	public List<RecommendationHistoryResponse> getHistory(String email) {
 		Member member = findMemberByEmail(email);
 
-		return recommendationHistoryRepository.findAllByMemberOrderByCreatedAtDesc(member).stream()
+		return recommendationHistoryRepository.findTop100ByMemberOrderByCreatedAtDescIdDesc(member).stream()
 			.map(RecommendationHistoryResponse::from)
 			.toList();
+	}
+
+    @Transactional(readOnly = true)
+    public PageResponse<RecommendationHistoryResponse> getHistoryPage(String email, int page, int size) {
+        if (page < 0 || size < 1 || size > 100) throw new BusinessException(ErrorCode.INVALID_INPUT);
+        Member member = findMemberByEmail(email);
+        return PageResponse.from(recommendationHistoryRepository.findByMember(member,
+            PageRequest.of(page, size, Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("id"))))
+            .map(RecommendationHistoryResponse::from));
+    }
+
+	@Transactional
+	public RecommendationHistoryResponse updateFeedback(
+		String email,
+		Long historyId,
+		RecommendationFeedbackRequest request
+	) {
+		Member member = findMemberByEmail(email);
+		RecommendationHistory history = recommendationHistoryRepository.findByIdAndMember(historyId, member)
+			.orElseThrow(() -> new BusinessException(ErrorCode.RECOMMENDATION_HISTORY_NOT_FOUND));
+		history.updateFeedback(request.feedback());
+
+		return RecommendationHistoryResponse.from(history);
 	}
 
 	private Member findMemberByEmail(String email) {

@@ -7,6 +7,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestParam;
+import com.projects.backend.common.response.PageResponse;
 
 import com.projects.backend.common.response.ApiResponse;
 import com.projects.backend.product.dto.ProductResponse;
@@ -40,4 +42,13 @@ public class ProductController {
 
 		return ResponseEntity.ok(ApiResponse.success(GET_PRODUCT_SUCCESS_MESSAGE, response));
 	}
+
+    @GetMapping("/page")
+    public ResponseEntity<ApiResponse<PageResponse<ProductResponse>>> getProductPage(
+        @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "12") int size,
+        @RequestParam(defaultValue = "all") String category, @RequestParam(defaultValue = "") String search
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(GET_PRODUCTS_SUCCESS_MESSAGE,
+            productService.getProductPage(page, size, category, search)));
+    }
 }

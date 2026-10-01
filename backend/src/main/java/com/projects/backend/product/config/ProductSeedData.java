@@ -25,6 +25,7 @@ import com.projects.backend.product.entity.ProductSize;
 import com.projects.backend.product.repository.ProductRepository;
 
 @Configuration
+@org.springframework.context.annotation.Profile("!prod")
 public class ProductSeedData {
 
 	@Bean

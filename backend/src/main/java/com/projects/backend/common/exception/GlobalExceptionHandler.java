@@ -4,6 +4,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * 애플리케이션 전체에서 발생하는 예외를 공통으로 처리한다.
@@ -14,6 +18,12 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
+    @ExceptionHandler({HttpMessageNotReadableException.class, MethodArgumentTypeMismatchException.class})
+    public ResponseEntity<ErrorResponse> handleMalformedInput(Exception exception) {
+        return ResponseEntity.badRequest().body(ErrorResponse.from(ErrorCode.INVALID_INPUT));
+    }
 
 	/**
 	 * 개발자가 의도적으로 발생시킨 BusinessException을 처리한다.
@@ -60,6 +70,7 @@ public class GlobalExceptionHandler {
 
 	@ExceptionHandler(Exception.class)
 	public ResponseEntity<ErrorResponse> handleException(Exception exception) {
+        log.error("Unhandled server error ({})", exception.getClass().getSimpleName());
 		ErrorCode errorCode = ErrorCode.INTERNAL_SERVER_ERROR;
 
 		return ResponseEntity

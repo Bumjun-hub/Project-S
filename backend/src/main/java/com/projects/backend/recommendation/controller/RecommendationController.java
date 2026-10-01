@@ -6,12 +6,18 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestParam;
+import com.projects.backend.common.response.PageResponse;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.projects.backend.common.response.ApiResponse;
 import com.projects.backend.recommendation.dto.RecommendationCreateRequest;
+import com.projects.backend.recommendation.dto.RecommendationFeedbackRequest;
 import com.projects.backend.recommendation.dto.RecommendationHistoryResponse;
 import com.projects.backend.recommendation.dto.RecommendationResponse;
 import com.projects.backend.recommendation.service.RecommendationService;
@@ -26,6 +32,8 @@ public class RecommendationController {
 		"\uC0AC\uC774\uC988 \uCD94\uCC9C \uACB0\uACFC\uB97C \uC0DD\uC131\uD588\uC2B5\uB2C8\uB2E4.";
 	private static final String HISTORY_SUCCESS_MESSAGE =
 		"\uC0AC\uC774\uC988 \uCD94\uCC9C \uC774\uB825\uC744 \uC870\uD68C\uD588\uC2B5\uB2C8\uB2E4.";
+	private static final String FEEDBACK_SUCCESS_MESSAGE =
+		"\uCD94\uCC9C \uD53C\uB4DC\uBC31\uC744 \uC800\uC7A5\uD588\uC2B5\uB2C8\uB2E4.";
 
 	private final RecommendationService recommendationService;
 
@@ -36,10 +44,11 @@ public class RecommendationController {
 	@PostMapping
 	public ResponseEntity<ApiResponse<RecommendationResponse>> recommend(
 		Authentication authentication,
-		@Valid @RequestBody RecommendationCreateRequest request
+		@Valid @RequestBody RecommendationCreateRequest request,
+        @RequestHeader(value = "Idempotency-Key", required = false) String requestKey
 	) {
 		String email = authentication.getName();
-		RecommendationResponse response = recommendationService.recommend(email, request);
+		RecommendationResponse response = recommendationService.recommend(email, request, requestKey);
 
 		return ResponseEntity.ok(ApiResponse.success(RECOMMENDATION_SUCCESS_MESSAGE, response));
 	}
@@ -49,4 +58,25 @@ public class RecommendationController {
 		List<RecommendationHistoryResponse> response = recommendationService.getHistory(authentication.getName());
 		return ResponseEntity.ok(ApiResponse.success(HISTORY_SUCCESS_MESSAGE, response));
 	}
+
+	@PatchMapping("/history/{historyId}/feedback")
+	public ResponseEntity<ApiResponse<RecommendationHistoryResponse>> updateFeedback(
+		Authentication authentication,
+		@PathVariable Long historyId,
+		@Valid @RequestBody RecommendationFeedbackRequest request
+	) {
+		RecommendationHistoryResponse response = recommendationService.updateFeedback(
+			authentication.getName(), historyId, request
+		);
+		return ResponseEntity.ok(ApiResponse.success(FEEDBACK_SUCCESS_MESSAGE, response));
+	}
+
+    @GetMapping("/history/page")
+    public ResponseEntity<ApiResponse<PageResponse<RecommendationHistoryResponse>>> getHistoryPage(
+        Authentication authentication, @RequestParam(defaultValue = "0") int page,
+        @RequestParam(defaultValue = "12") int size
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(HISTORY_SUCCESS_MESSAGE,
+            recommendationService.getHistoryPage(authentication.getName(), page, size)));
+    }
 }
