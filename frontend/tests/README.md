@@ -58,7 +58,7 @@ npm run test:e2e:report
 
 ## GitHub Actions 자동 검증
 
-프로젝트 루트의 `.github/workflows/ci.yml`에서 `Project S CI`를 구성했습니다.
+프로젝트 루트의 `.github/workflows/ci.yml`에서 `Project S 자동 검증`을 구성했습니다.
 `main` 푸시, Pull Request, 수동 실행 시 프론트와 백엔드 검사를 독립적으로 실행합니다.
 프론트 검사는 `npm ci` → 단위 테스트 → 일반 프로덕션 빌드 → 타입 검사 → Chromium 설치 → E2E 순서입니다.
 GitHub Secrets나 실제 DB는 필요하지 않습니다. E2E가 사용하는 데모 설정은 별도 서버 프로세스에만 적용됩니다.

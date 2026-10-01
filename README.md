@@ -109,7 +109,61 @@ NEXT_PUBLIC_API_BASE_URL=http://localhost:8080 npm run dev
 
 ## 프로젝트 스크린샷
 
-> TODO: 실제 배포 화면 캡처와 서비스 URL을 추가합니다. 현재 저장소에는 문서용 스크린샷이 없습니다.
+아래 이미지는 **실제 구현된 화면**을 로컬 데모 환경에서 Playwright Chromium으로 캡처한 것입니다(2026-10-01).
+상품·추천 결과·피드백은 예시 데이터이며, 실제 회원 정보나 운영 DB를 사용하지 않았습니다.
+데스크톱은 1440×1000, 모바일은 390×844 뷰포트에서 전체 페이지를 캡처했습니다.
+모바일 이미지는 Chromium 에뮬레이션이며 실제 기기·Safari 검증을 의미하지 않습니다.
+
+### 랜딩 페이지
+
+서비스 소개, 기준 옷 기반 추천 흐름, 상품 탐색으로 이어지는 진입 화면입니다.
+
+![랜딩 페이지 — 데스크톱](frontend/docs/screenshots/landing-desktop.png)
+
+### 상품 상세·사이즈표
+
+상품 정보와 사이즈별 실측을 확인하고 기준 옷 기반 핏 분석을 시작합니다.
+
+![상품 상세 및 실측 사이즈표 — 데스크톱](frontend/docs/screenshots/product-detail-desktop.png)
+
+### 추천 결과·피드백
+
+추천 사이즈·실측 일치도·부위별 차이와 착용 피드백을 한 화면에서 확인합니다.
+
+![추천 결과 및 착용 피드백 — 데스크톱](frontend/docs/screenshots/recommendation-result-desktop.png)
+
+### 분석 기록 대시보드
+
+분석 횟수·추천 사이즈·일치도·피드백 요약과 저장된 결과 다시보기를 제공합니다.
+아래 화면은 데모 UI에서 추천과 피드백을 남긴 뒤 새로고침하여 캡처했습니다.
+데모의 브라우저 저장 동작은 실제 API·PostgreSQL 연동 검증을 대체하지 않습니다.
+
+![분석 기록 대시보드 — 데스크톱](frontend/docs/screenshots/analysis-history-desktop.png)
+
+<details>
+<summary>모바일 화면 4개 보기</summary>
+
+#### 랜딩 페이지
+
+<img src="frontend/docs/screenshots/landing-mobile.png" alt="랜딩 페이지 — 모바일" width="390" />
+
+#### 상품 상세·사이즈표
+
+<img src="frontend/docs/screenshots/product-detail-mobile.png" alt="상품 상세 및 실측 사이즈표 — 모바일" width="390" />
+
+#### 추천 결과·피드백
+
+<img src="frontend/docs/screenshots/recommendation-result-mobile.png" alt="추천 결과 및 착용 피드백 — 모바일" width="390" />
+
+#### 분석 기록 대시보드
+
+<img src="frontend/docs/screenshots/analysis-history-mobile.png" alt="분석 기록 대시보드 — 모바일" width="390" />
+
+</details>
+
+캡처를 갱신하려면 `frontend`에서 `npm run screenshots`를 실행합니다.
+실행 조건과 개인정보 보호 방식은 [화면 캡처 안내](frontend/docs/screenshots/README.md)를 참고해 주세요.
+공개 서비스 URL은 실제 배포 주소 확인 후 별도로 추가해야 합니다.
 
 ## 문서
 
